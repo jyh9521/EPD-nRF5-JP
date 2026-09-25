@@ -9,10 +9,18 @@ typedef struct {
 } jp_date_t;
 
 static const char* const HOLIDAY_NAMES[] = {
-    "",         "元日",     "成人",     "建国記念", "天皇誕生", "春分",     "昭和",
-    "憲法記念", "みどり",   "こども",   "海の日",   "山の日",   "敬老",     "秋分",
-    "スポーツ", "文化",     "勤労感謝", "即位",     "即位礼",   "国民休日", "振替休日",
+    "",             "元日",       "成人の日",       "建国記念の日", "天皇誕生日", "春分の日", "昭和の日",
+    "憲法記念日",   "みどりの日", "こどもの日",   "海の日",       "山の日",       "敬老の日", "秋分の日",
+    "スポーツの日", "文化の日",   "勤労感謝の日", "天皇の即位の日", "即位礼正殿の儀の行われる日", "国民の休日", "振替休日",
 };
+
+static const char* const ETO_STEMS[10] = {"甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"};
+static const char* const ETO_BRANCHES[12] = {"子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"};
+static const char* const ETO_ANIMALS[12] = {"鼠", "牛", "虎", "兎", "龍", "蛇", "馬", "羊", "猿", "鶏", "犬", "猪"};
+
+const char* jp_eto_stem(uint16_t year) { return ETO_STEMS[(year - 4U) % 10U]; }
+const char* jp_eto_branch(uint16_t year) { return ETO_BRANCHES[(year - 4U) % 12U]; }
+const char* jp_eto_animal(uint16_t year) { return ETO_ANIMALS[(year - 4U) % 12U]; }
 
 bool jp_is_leap_year(uint16_t year) {
     return (year % 400U == 0U) || ((year % 4U == 0U) && (year % 100U != 0U));
@@ -208,5 +216,6 @@ jp_holiday_t jp_get_holiday(uint16_t year, uint8_t month, uint8_t day) {
     if (result.id == JP_HOLIDAY_NONE && is_citizens_holiday(year, month, day)) result.id = JP_HOLIDAY_CITIZENS;
     if (result.id == JP_HOLIDAY_NONE && is_substitute_holiday(year, month, day)) result.id = JP_HOLIDAY_SUBSTITUTE;
     if (result.id != JP_HOLIDAY_NONE) result.name = HOLIDAY_NAMES[result.id];
+    if (result.id == JP_HOLIDAY_SPORTS && year < 2020U) result.name = "体育の日";
     return result;
 }

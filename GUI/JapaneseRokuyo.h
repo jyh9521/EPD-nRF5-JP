@@ -15,6 +15,7 @@ typedef enum {
 } jp_rokuyo_t;
 
 jp_rokuyo_t jp_rokuyo_from_lunar(const struct Lunar_Date* lunar);
+void jp_solar_to_japanese_lunar(struct Lunar_Date* lunar, uint16_t year, uint8_t month, uint8_t day);
 jp_rokuyo_t jp_get_rokuyo(uint16_t year, uint8_t month, uint8_t day);
 const char* jp_rokuyo_name(jp_rokuyo_t rokuyo);
 

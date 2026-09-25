@@ -40,5 +40,8 @@ uint8_t jp_iso_week_number(uint16_t year, uint8_t month, uint8_t day);
 uint8_t jp_calendar_rows(uint16_t year, uint8_t month, uint8_t week_start);
 uint8_t jp_reiwa_year(uint16_t year, uint8_t month, uint8_t day); /* 0 before Reiwa */
 jp_holiday_t jp_get_holiday(uint16_t year, uint8_t month, uint8_t day);
+const char* jp_eto_stem(uint16_t year);
+const char* jp_eto_branch(uint16_t year);
+const char* jp_eto_animal(uint16_t year);
 
 #endif

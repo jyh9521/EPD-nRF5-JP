@@ -65,7 +65,24 @@ int main(void) {
     expect_holiday(2026, 11, 23, JP_HOLIDAY_LABOR_THANKSGIVING);
     expect_holiday(2026, 9, 24, JP_HOLIDAY_NONE);
 
-    assert(strcmp(jp_get_holiday(2026, 10, 12).name, "スポーツ") == 0);
+    assert(strcmp(jp_get_holiday(2026, 10, 12).name, "スポーツの日") == 0);
+    assert(strcmp(jp_get_holiday(2026, 9, 21).name, "敬老の日") == 0);
+    assert(strcmp(jp_get_holiday(2026, 9, 22).name, "国民の休日") == 0);
+    assert(strcmp(jp_get_holiday(2026, 9, 23).name, "秋分の日") == 0);
+    assert(strcmp(jp_get_holiday(2026, 3, 20).name, "春分の日") == 0);
+    assert(strcmp(jp_get_holiday(2026, 11, 23).name, "勤労感謝の日") == 0);
+    assert(strcmp(jp_get_holiday(2021, 8, 9).name, "振替休日") == 0);
+    assert(strcmp(jp_get_holiday(2019, 10, 22).name, "即位礼正殿の儀の行われる日") == 0);
+    assert(strcmp(jp_get_holiday(2019, 10, 14).name, "体育の日") == 0);
+    assert(strcmp(jp_eto_stem(2024), "甲") == 0 && strcmp(jp_eto_branch(2024), "辰") == 0);
+    assert(strcmp(jp_eto_stem(2025), "乙") == 0 && strcmp(jp_eto_branch(2025), "巳") == 0);
+    assert(strcmp(jp_eto_stem(2026), "丙") == 0 && strcmp(jp_eto_branch(2026), "午") == 0);
+    assert(strcmp(jp_eto_animal(2026), "馬") == 0);
+    assert(strcmp(jp_eto_stem(2027), "丁") == 0 && strcmp(jp_eto_branch(2027), "未") == 0);
+    assert(strcmp(jp_eto_stem(2028), "戊") == 0 && strcmp(jp_eto_branch(2028), "申") == 0);
+    assert(strcmp(jp_eto_stem(1966), "丙") == 0 && strcmp(jp_eto_branch(1966), "午") == 0);
+    assert(strcmp(jp_eto_stem(1966), jp_eto_stem(2026)) == 0);
+    assert(strcmp(jp_eto_branch(1966), jp_eto_branch(2026)) == 0);
     puts("JapaneseCalendar tests: PASS");
     return 0;
 }

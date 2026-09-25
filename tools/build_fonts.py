@@ -2,6 +2,7 @@
 import subprocess
 import os
 import sys
+from build_compact_font import build_compact_bdf, holiday_codes
 
 FONT_TXT = "font.txt"
 
@@ -10,11 +11,19 @@ FONTS = [
         'name': f"u8g2_font_wqy9_t_lunar",
         'bdf': f"fonts/wenquanyi_9ptb.bdf",
         'ascii': "32-128",
+        'source': "font.txt",
     },
     {
         'name': f"u8g2_font_wqy12_t_lunar",
         'bdf': f"fonts/wenquanyi_12ptb.bdf",
         'ascii': "48-57",
+        'source': "font-large.txt",
+    },
+    {
+        'name': "u8g2_font_jp_holiday_compact",
+        'bdf': "_jp_holiday_compact.bdf",
+        'ascii': None,
+        'source': None,
     }
 ]
 
@@ -55,9 +64,10 @@ def run_bdfconv(map_file, output_name, bdf_file):
 
 
 def main():
-    codes = extract_codes(FONT_TXT)
+    build_compact_bdf()
 
     for font in FONTS:
+        codes = extract_codes(font['source']) if font['source'] else holiday_codes()
         map_file = f"_{font['name']}.map"
         write_map_file(map_file, codes, ascii_range=font['ascii'])
         run_bdfconv(
@@ -107,6 +117,7 @@ def main():
             print(f"Removed {fname}")
         else:
             print(f"Warning: {fname} not found, skipping", file=sys.stderr)
+    os.remove("_jp_holiday_compact.bdf")
 
 
 if __name__ == "__main__":
