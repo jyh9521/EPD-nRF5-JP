@@ -42,7 +42,7 @@ void ble_epd_evt_handler(ble_evt_t const* p_ble_evt, void* p_context);
 #define BLE_EPD_DEF(_name) static ble_epd_t _name;
 #endif
 
-#define APP_VERSION 0x1a
+#define APP_VERSION 0x1b /* Japanese Edition, first calendar release */
 
 #define BLE_UUID_EPD_SVC_BASE \
     {{0XEC, 0X5A, 0X67, 0X1C, 0XC1, 0XB6, 0X46, 0XFB, 0X8D, 0X91, 0X28, 0XD8, 0X22, 0X36, 0X75, 0X62}}
@@ -70,7 +70,8 @@ enum EPD_CMDS {
     EPD_CMD_SLEEP = 0x06,        /**< EPD enter sleep mode */
 
     EPD_CMD_SET_TIME = 0x20,       /** < set time with unix timestamp */
-    EPD_CMD_SET_WEEK_START = 0x21, /** < set week start day (0: Sunday, 1: Monday, ...) */
+    EPD_CMD_SET_WEEK_START = 0x21, /** < set week start day (0: Sunday, 1: Monday) */
+    EPD_CMD_GET_CONFIG = 0x22,     /** < notify the existing 13-byte config payload */
 
     EPD_CMD_WRITE_IMAGE = 0x30, /** < write image data to EPD ram */
 

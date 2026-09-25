@@ -117,6 +117,11 @@ static void epd_update_display_mode(ble_epd_t* p_epd, display_mode_t mode) {
     }
 }
 
+static void epd_send_config(ble_epd_t* p_epd) {
+    uint32_t err_code = ble_epd_string_send(p_epd, (uint8_t*)&p_epd->config, sizeof(p_epd->config));
+    if (err_code != NRF_ERROR_INVALID_STATE) APP_ERROR_CHECK(err_code);
+}
+
 static void epd_send_time(ble_epd_t* p_epd) {
     char buf[20] = {0};
     snprintf(buf, 20, "t=%" PRIu32, timestamp());
@@ -204,10 +209,17 @@ static void epd_service_on_write(ble_epd_t* p_epd, uint8_t* p_data, uint16_t len
 
         case EPD_CMD_SET_WEEK_START:
             if (length < 2) return;
-            if (p_data[1] < 7 && p_data[1] != p_epd->config.week_start) {
+            if (p_data[1] <= 1 && p_data[1] != p_epd->config.week_start) {
                 p_epd->config.week_start = p_data[1];
                 epd_config_write(&p_epd->config);
+                if (p_epd->config.display_mode == MODE_CALENDAR)
+                    ble_epd_on_timer(p_epd, timestamp(), true);
             }
+            epd_send_config(p_epd);
+            break;
+
+        case EPD_CMD_GET_CONFIG:
+            epd_send_config(p_epd);
             break;
 
         case EPD_CMD_WRITE_IMAGE: {
@@ -238,7 +250,9 @@ static void epd_service_on_write(ble_epd_t* p_epd, uint8_t* p_data, uint16_t len
         case EPD_CMD_SET_CONFIG:
             if (length < 2) return;
             memcpy(&p_epd->config, &p_data[1], (length - 1 > EPD_CONFIG_SIZE) ? EPD_CONFIG_SIZE : length - 1);
+            if (p_epd->config.week_start > 1) p_epd->config.week_start = 0;
             epd_config_write(&p_epd->config);
+            epd_send_config(p_epd);
             break;
 
         case EPD_CMD_SYS_SLEEP:
@@ -276,10 +290,8 @@ static void on_write(ble_epd_t* p_epd, ble_evt_t* p_ble_evt) {
         if (ble_srv_is_notification_enabled(p_evt_write->data)) {
             NRF_LOG_DEBUG("notification enabled\n");
             p_epd->is_notification_enabled = true;
-            static uint16_t length = sizeof(epd_config_t);
             NRF_LOG_DEBUG("send epd config\n");
-            uint32_t err_code = ble_epd_string_send(p_epd, (uint8_t*)&p_epd->config, length);
-            if (err_code != NRF_ERROR_INVALID_STATE) APP_ERROR_CHECK(err_code);
+            epd_send_config(p_epd);
         } else {
             p_epd->is_notification_enabled = false;
         }
@@ -397,7 +409,13 @@ uint32_t ble_epd_init(ble_epd_t* p_epd) {
         memcpy(&p_epd->config, cfg, sizeof(cfg));
 #endif
         if (p_epd->config.display_mode == 0xFF) p_epd->config.display_mode = MODE_CALENDAR;
-        if (p_epd->config.week_start == 0xFF) p_epd->config.week_start = 0;
+        if (p_epd->config.week_start > 1) p_epd->config.week_start = 0;
+        epd_config_write(&p_epd->config);
+    }
+
+    /* Older persisted records may contain 0xFF or unsupported weekday values. */
+    if (p_epd->config.week_start > 1) {
+        p_epd->config.week_start = 0;
         epd_config_write(&p_epd->config);
     }
 

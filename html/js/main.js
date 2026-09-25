@@ -4,6 +4,8 @@ let startTime, msgIndex, appVersion;
 let canvas, ctx, textDecoder;
 let paintManager, cropManager;
 let rleSupport;
+let deviceWeekStart = null;
+let awaitingConfig = false;
 
 const EpdCmd = {
   SET_PINS: 0x00,
@@ -15,6 +17,8 @@ const EpdCmd = {
   SLEEP: 0x06,
 
   SET_TIME: 0x20,
+  SET_WEEK_START: 0x21,
+  GET_CONFIG: 0x22,
 
   WRITE_IMG: 0x30, // v1.6
 
@@ -77,6 +81,10 @@ function resetVariables() {
   epdCharacteristic = null;
   msgIndex = 0;
   rleSupport = false;
+  deviceWeekStart = null;
+  awaitingConfig = false;
+  document.getElementById("weekstart").value = "0";
+  document.getElementById("weekstartstatus").textContent = "デバイスに接続すると現在の設定を読み込みます。";
   document.getElementById("log").value = '';
 }
 
@@ -338,11 +346,13 @@ function updateButtonStatus(forceDisabled = false) {
   document.getElementById("clearscreenbutton").disabled = status;
   document.getElementById("sendimgbutton").disabled = status;
   document.getElementById("setDriverbutton").disabled = status;
+  document.getElementById("weekstart").disabled = forceDisabled || !connected || deviceWeekStart === null;
+  document.getElementById("setweekstartbutton").disabled = forceDisabled || !connected || deviceWeekStart === null;
 }
 
 function disconnect() {
-  updateButtonStatus();
   resetVariables();
+  updateButtonStatus();
   addLog('已断开连接.');
   document.getElementById("connectbutton").innerHTML = '连接';
 }
@@ -385,7 +395,8 @@ async function reConnect() {
 
 function handleNotify(value, idx) {
   const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  if (idx == 0) {
+  // Firmware notifications reuse the original 13-byte configuration payload.
+  if (data.length === 13 && data[7] <= 0x20 && data[12] <= 1) {
     addLog(`收到配置：${bytes2hex(data)}`);
     const epdpins = document.getElementById("epdpins");
     const epddriver = document.getElementById("epddriver");
@@ -393,6 +404,12 @@ function handleNotify(value, idx) {
     if (data.length > 10) epdpins.value += bytes2hex(data.slice(10, 11));
     epddriver.value = bytes2hex(data.slice(7, 8));
     updateDitcherOptions();
+    deviceWeekStart = data[12];
+    document.getElementById("weekstart").value = String(deviceWeekStart);
+    document.getElementById("weekstartstatus").textContent =
+      `デバイスの設定: ${deviceWeekStart === 0 ? "日曜日" : "月曜日"}`;
+    awaitingConfig = false;
+    updateButtonStatus();
   } else {
     if (textDecoder == null) textDecoder = new TextDecoder();
     const msg = textDecoder.decode(data);
@@ -435,22 +452,16 @@ async function connect() {
     const versionCharacteristic = await epdService.getCharacteristic('62750003-d828-918d-fb46-b6c11c675aec');
     const versionData = await versionCharacteristic.readValue();
     appVersion = versionData.getUint8(0);
-    addLog(`固件版本: 0x${appVersion.toString(16)}`);
+    addLog(`固件版本: 0x${appVersion.toString(16)}${appVersion >= 0x1b ? ' (JP)' : ''}`);
   } catch (e) {
     console.error(e);
     appVersion = 0x15;
   }
 
-  if (appVersion < 0x16) {
-    const oldURL = "https://tsl0922.github.io/EPD-nRF5/v1.5";
-    alert("!!!注意!!!\n当前固件版本过低，可能无法正常使用部分功能，建议升级到最新版本。");
-    if (confirm('是否访问旧版本上位机？')) location.href = oldURL;
-    setTimeout(() => {
-      addLog(`如遇到问题，可访问旧版本上位机: ${oldURL}`);
-    }, 500);
-  }
+  if (appVersion < 0x16) addLog("旧版固件可能不支持部分功能。");
 
   try {
+    awaitingConfig = true;
     await epdCharacteristic.startNotifications();
     epdCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
       handleNotify(event.target.value, msgIndex++);
@@ -458,9 +469,11 @@ async function connect() {
   } catch (e) {
     console.error(e);
     if (e.message) addLog("startNotifications: " + e.message);
+    awaitingConfig = false;
   }
 
   await write(EpdCmd.INIT);
+  if (awaitingConfig) await write(EpdCmd.GET_CONFIG);
 
   document.getElementById("connectbutton").innerHTML = '断开';
   updateButtonStatus();
@@ -674,4 +687,21 @@ document.body.onload = () => {
   initEventHandlers();
   updateButtonStatus();
   checkDebugMode();
+}
+
+async function setWeekStart() {
+  const selection = document.getElementById("weekstart");
+  const value = Number(selection.value);
+  if (!gattServer || !gattServer.connected || deviceWeekStart === null || (value !== 0 && value !== 1)) return;
+  document.getElementById("setweekstartbutton").disabled = true;
+  document.getElementById("weekstartstatus").textContent = "デバイスに保存しています…";
+  awaitingConfig = true;
+  if (!await write(EpdCmd.SET_WEEK_START, new Uint8Array([value]))) {
+    awaitingConfig = false;
+    selection.value = String(deviceWeekStart);
+    document.getElementById("weekstartstatus").textContent = "保存に失敗しました。";
+    updateButtonStatus();
+  } else {
+    await write(EpdCmd.GET_CONFIG);
+  }
 }
