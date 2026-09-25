@@ -435,6 +435,11 @@
               <FilePath>..\GUI\GUI.c</FilePath>
             </File>
             <File>
+              <FileName>JapaneseCalendar.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GUI\JapaneseCalendar.c</FilePath>
+            </File>
+            <File>
               <FileName>Lunar.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\GUI\Lunar.c</FilePath>
@@ -1190,6 +1195,11 @@
               <FileName>GUI.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\GUI\GUI.c</FilePath>
+            </File>
+            <File>
+              <FileName>JapaneseCalendar.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GUI\JapaneseCalendar.c</FilePath>
             </File>
             <File>
               <FileName>Lunar.c</FileName>
