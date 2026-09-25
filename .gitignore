@@ -52,6 +52,13 @@ __pycache__/
 artifacts/japanese-calendar/*.log
 artifacts/japanese-calendar/*.ppm
 artifacts/japanese-calendar/rollback-test.c
+artifacts/japanese-rokuyo/*.log
+artifacts/japanese-rokuyo/*.ppm
+artifacts/japanese-rokuyo/*.bin
+artifacts/japanese-rokuyo/*.elf
+artifacts/japanese-rokuyo/*.exe
+artifacts/japanese-rokuyo/host-src/
+artifacts/japanese-rokuyo/rollback-test.c
 
 # Debugger files
 # define exception below if needed

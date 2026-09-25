@@ -1,0 +1,55 @@
+EPD-nRF5-JP Japanese era / Rokuyo verification
+Branch: codex/feature-japanese-calendar
+Changed branch/field: GUI/GUI.c DrawDateHeader era baseline and DrawMonthDays holiday-or-Rokuyo lower label; GUI/JapaneseRokuyo.c enum mapping.
+Workspace: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP
+MODIFIED_FILE: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\artifacts\japanese-rokuyo\MODIFIED_FILE
+DIFF_FILE: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\artifacts\japanese-rokuyo\DIFF_FILE
+VERIFICATION.txt: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\artifacts\japanese-rokuyo\VERIFICATION.txt
+ROLLBACK.sh: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\artifacts\japanese-rokuyo\ROLLBACK.sh
+Original source: artifacts/japanese-rokuyo/GUI.c.original
+Original GUI.c SHA-256: 2BCABEB66DE713EC106C0A993E8461D839A0D669A11B03F84F25701233581CA7
+Modified GUI.c SHA-256: 5BC7AEE9D83E957580F6FFEE49EF1314C34FE7F69E5EBE092C38D56DE600A734
+
+BASELINE command (PowerShell, workspace cwd):
+python -c "from pathlib import Path; x=Path('artifacts/japanese-rokuyo/GUI.c.original').read_bytes(); print('BASELINE: ROKUYO='+str(b'jp_get_rokuyo' in x)+', ERA_DESCENT='+str(b'GFX_getFontDescent(gfx)' in x))"
+BASELINE input: original GUI.c from HEAD 339fe82a3be99d93f63b77694519478bb211342f.
+BASELINE literal output: BASELINE: ROKUYO=False, ERA_DESCENT=False
+BASELINE exit status: 0
+BASELINE test command: & "$env:TEMP/tcc-0.9.27/tcc/tcc.exe" -Wall -IGUI tests/test_japanese_calendar.c GUI/JapaneseCalendar.c -o artifacts/japanese-rokuyo/baseline-test.exe; & artifacts/japanese-rokuyo/baseline-test.exe
+BASELINE test literal output: JapaneseCalendar tests: PASS
+BASELINE test exit status: 0
+BASELINE behavior: holiday calendar works, but no Rokuyo lower labels; small era text baseline y=38 on 400x300.
+
+MODIFIED command (PowerShell, workspace cwd):
+python -c "from pathlib import Path; x=Path('artifacts/japanese-rokuyo/MODIFIED_FILE').read_bytes(); print('MODIFIED: ROKUYO='+str(b'jp_get_rokuyo' in x)+', ERA_DESCENT='+str(b'GFX_getFontDescent(gfx)' in x))"
+MODIFIED input: MODIFIED_FILE copy of current GUI.c.
+MODIFIED literal output: MODIFIED: ROKUYO=True, ERA_DESCENT=True
+MODIFIED exit status: 0
+MODIFIED dated test command: & artifacts/japanese-rokuyo/rokuyo-test.exe
+MODIFIED dated test literal output: JapaneseRokuyo tests: PASS (10 dated cases)
+MODIFIED dated test exit status: 0
+MODIFIED render test command: python tests/test_rokuyo_render.py artifacts/japanese-rokuyo/calendar-2026-09-25.png artifacts/japanese-rokuyo/calendar-2026-08.png
+MODIFIED render test literal output: Rokuyo render tests: PASS (5-row, 6-row, colors, holidays, today)
+MODIFIED render test exit status: 0
+MODIFIED build command: python tools/build_nrf52811.py --toolchain C:\Temp\gcc-arm\gcc-arm-none-eabi-10.3-2021.10
+MODIFIED build input: nRF52811_xxAA Keil source list and original strict 0x19000..0x25FFF linker region.
+MODIFIED build literal result: BUILD_EXIT=0; text=51564, data=224, bss=1552; BIN=51788 B; WARNING_COUNT=0.
+MODIFIED build exit status: 0
+MODIFIED HEX check result: HEX_RANGE=0x19000-0x25A4B; END_EXCLUSIVE=0x25A4C; OTA_LIMIT=0x26000; HEADROOM=1460; PASS=True.
+MODIFIED behavior: Gregorian heading and weekday bar pixel-identical to prior render; era baseline 38 + font descent (-2) = 36, week baseline remains 38. Holiday label branch takes precedence. Other days render centered Rokuyo; only 大安 is red. Today red circle remains, with white digits and readable black 仏滅.
+
+ROLLBACK command (PowerShell, workspace cwd):
+& 'C:\Program Files\Git\bin\bash.exe' artifacts/japanese-rokuyo/ROLLBACK.sh artifacts/japanese-rokuyo/rollback-test.c
+ROLLBACK input: rollback-test.c copied from MODIFIED_FILE, not live source.
+ROLLBACK literal output: 2bcabeb66de713ec106c0a993e8461d839a0d669a11b03f84f25701233581ca7 *artifacts/japanese-rokuyo/rollback-test.c
+ROLLBACK exit status: 0
+ROLLBACK verification command: python -c "from pathlib import Path; x=Path('artifacts/japanese-rokuyo/rollback-test.c').read_bytes(); print('ROLLBACK: ROKUYO='+str(b'jp_get_rokuyo' in x)+', ERA_DESCENT='+str(b'GFX_getFontDescent(gfx)' in x))"
+ROLLBACK verification literal output: ROLLBACK: ROKUYO=False, ERA_DESCENT=False
+ROLLBACK verification exit status: 0
+ROLLBACK restored behavior/status: copy equals original SHA-256, loses Rokuyo and reverts era baseline; live GUI.c and MODIFIED_FILE retain modified SHA-256 5BC7AEE9D83E957580F6FFEE49EF1314C34FE7F69E5EBE092C38D56DE600A734.
+
+Algorithm: old-calendar (month+day)%6 => 0 大安, 1 赤口, 2 先勝, 3 友引, 4 先負, 5 仏滅. Existing LUNAR_SolarToLunar is called per drawn date. The converter represents leap month with IsLeap=1 and repeated Month number; Rokuyo ignores IsLeap but uses reset Date, so leap month day 1 starts the repeated-month pattern. Populated converter table permits Gregorian 2000-2050. It is a Chinese-lunar table, not an astronomical Japanese old-calendar engine; Japan/China dates may diverge in some years. Test dates below were independently checked against Japanese calendars.
+Dated cases: 2023-03-21 lunar 2/30 normal=先勝 -> 2023-03-22 leap 2/1=友引; 2024-02-10 lunar 1/1=先勝; 2026-02-16 lunar 2025/12/29=仏滅 -> 2026-02-17 lunar 1/1=先勝; 2026-09-10 lunar 7/29=大安 -> 2026-09-11 lunar 8/1=友引; 2026-09-25 lunar 8/15=仏滅; 2026-09-30 lunar 8/20=先負 -> 2026-10-01 lunar 8/21=仏滅. 2026-09-21 and 2026-09-23 holiday labels remain 敬老 and 秋分; 2026-09-25 today circle remains.
+Sources: https://www.jha.or.jp/jp/shop/products/suiro/pdf/suiro191.pdf ; https://rekichu.com/rekichu/kyureki/ ; https://nihonkoyomi.com/2026/9/ ; https://www.benri.jp/calendar/kyuureki/?year=2023 ; https://event.ajima.jp/2024/osyogatsu/ ; https://www.data.jma.go.jp/daitou/shosai/bousai_calendar2026.pdf
+
+Resources (GNU -Os -flto): baseline FLASH 52700 B (text 52476 + data 224), RAM 1776 B (data 224 + bss 1552), BIN 52700 B. Modified FLASH 51788 B (text 51564 + data 224), RAM 1776 B, BIN 51788 B. Delta FLASH -912 B, RAM 0 B, BIN -912 B. Added glyphs: 仏先勝友口引滅負赤 (9; 大 and 安 already existed). Raw glyph cost before pruning: wqy9 5281->5493 (+212 B), wqy12 6238->6575 (+337 B), total +549 B. Removed 27 Chinese holiday-only glyphs that were not used by the current calendar or clock renderer: pre-prune 5493+6575=12068 -> final 4815+5554=10369 (-1699 B); net font change -1150 B. Algorithm, render and layout code approximate +238 B (= net FLASH delta minus net font delta), measured with the same build flags. Chinese lunar clock strings, Zodiac, JieQi and all current Japanese calendar labels remain in the font subset. No BLE, OTA, driver, clock, or Web Controller source was changed; no physical flashing was performed.

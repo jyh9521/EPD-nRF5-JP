@@ -440,6 +440,11 @@
               <FilePath>..\GUI\JapaneseCalendar.c</FilePath>
             </File>
             <File>
+              <FileName>JapaneseRokuyo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GUI\JapaneseRokuyo.c</FilePath>
+            </File>
+            <File>
               <FileName>Lunar.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\GUI\Lunar.c</FilePath>
@@ -1200,6 +1205,11 @@
               <FileName>JapaneseCalendar.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\GUI\JapaneseCalendar.c</FilePath>
+            </File>
+            <File>
+              <FileName>JapaneseRokuyo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\GUI\JapaneseRokuyo.c</FilePath>
             </File>
             <File>
               <FileName>Lunar.c</FileName>

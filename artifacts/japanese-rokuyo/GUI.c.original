@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 #include "JapaneseCalendar.h"
-#include "JapaneseRokuyo.h"
 #include "Lunar.h"
 #include "fonts.h"
 
@@ -82,14 +81,11 @@ static void DrawDateHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gu
     int16_t ty = y;
 
     GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
-    /* Lift the small era text by its font descender; keep the week on the
-       original baseline so the large Gregorian heading remains unchanged. */
-    GFX_setCursor(gfx, tx, ty + GFX_getFontDescent(gfx));
+    GFX_setCursor(gfx, tx, ty);
     if (reiwa == 1U)
         GFX_printf(gfx, " 令和元年");
     else if (reiwa != 0U)
         GFX_printf(gfx, " 令和%d年", reiwa);
-    GFX_setCursor(gfx, gfx->tx, ty);
     GFX_setTextColor(gfx, GFX_RED, GFX_WHITE);
     GFX_printf(gfx, " [%d週]", GetWeekOfYear(tm->tm_year, tm->tm_mon, tm->tm_mday, tm->tm_wday));
 
@@ -170,15 +166,6 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
             GFX_setCursor(gfx, bx + (2 * cr - GFX_getUTF8Width(gfx, holiday.name)) / 2 + 1,
                           gfx->ty + GFX_getFontHeight(gfx) + (large ? 5 : 3));
             GFX_printf(gfx, "%s", holiday.name);
-        } else {
-            jp_rokuyo_t rokuyo = jp_get_rokuyo(year, month, day);
-            if (rokuyo != JP_ROKUYO_NONE) {
-                const char* name = jp_rokuyo_name(rokuyo);
-                GFX_setTextColor(gfx, rokuyo == JP_ROKUYO_TAIAN ? GFX_RED : GFX_BLACK, GFX_WHITE);
-                GFX_setCursor(gfx, bx + (2 * cr - GFX_getUTF8Width(gfx, name)) / 2 + 1,
-                              gfx->ty + GFX_getFontHeight(gfx) + (large ? 5 : 3));
-                GFX_printf(gfx, "%s", name);
-            }
         }
     }
 }
