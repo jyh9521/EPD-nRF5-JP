@@ -77,13 +77,13 @@ def main():
                 print(f"Warning: {fname} not found, skipping", file=sys.stderr)
                 continue
             with open(fname, "r", encoding="utf-8") as in_f:
-                final_parts.append(in_f.read())
+                final_parts.append("\n".join(line.rstrip() for line in in_f.read().splitlines()))
         for fname in EXTRA_FONTS:
             if not os.path.isfile(fname):
                 print(f"Warning: {fname} not found, skipping", file=sys.stderr)
                 continue
             with open(fname, "r", encoding="utf-8") as in_f:
-                final_parts.append(in_f.read())
+                final_parts.append("\n".join(line.rstrip() for line in in_f.read().splitlines()))
         out_f.write("\n".join(final_parts))
 
     print("== Done. fonts.c created.")
