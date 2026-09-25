@@ -79,7 +79,7 @@ class CropManager {
     // Make the canvas transparent
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    setCanvasTitle("裁剪模式: 可用鼠标滚轮或双指触摸缩放图片");
+    setCanvasTitle(t("裁剪模式: 可用鼠标滚轮或双指触摸缩放图片"));
     this.canvas.parentNode.classList.add('crop-mode');
   }
 

@@ -6,6 +6,8 @@ let paintManager, cropManager;
 let rleSupport;
 let deviceWeekStart = null;
 let awaitingConfig = false;
+let weekStatusKey = 'week_initial';
+let statusRenderer = null;
 
 const EpdCmd = {
   SET_PINS: 0x00,
@@ -84,13 +86,14 @@ function resetVariables() {
   deviceWeekStart = null;
   awaitingConfig = false;
   document.getElementById("weekstart").value = "0";
-  document.getElementById("weekstartstatus").textContent = "デバイスに接続すると現在の設定を読み込みます。";
+  weekStatusKey = 'week_initial';
+  document.getElementById("weekstartstatus").textContent = t(weekStatusKey);
   document.getElementById("log").value = '';
 }
 
 async function write(cmd, data, withResponse = true) {
   if (!epdCharacteristic) {
-    addLog("服务不可用，请检查蓝牙连接");
+    addLog(t("服务不可用，请检查蓝牙连接"));
     return false;
   }
   let payload = [cmd];
@@ -107,7 +110,7 @@ async function write(cmd, data, withResponse = true) {
       await epdCharacteristic.writeValueWithoutResponse(Uint8Array.from(payload));
   } catch (e) {
     console.error(e);
-    if (e.message) addLog("write: " + e.message);
+    addLog(t('write_failed'));
     return false;
   }
   return true;
@@ -118,7 +121,6 @@ async function writeImage(data, step = 'bw') {
   const interleavedCount = document.getElementById('interleavedcount').value;
   let noReplyCount = interleavedCount;
   let totalRleLength = 0;
-  const stepText = step === 'bw' ? '数据块' : '红色块';
 
   // Use RLE only when its complete encoded stream is smaller than the
   // original data. Each RLE chunk contains complete codes.
@@ -138,7 +140,8 @@ async function writeImage(data, step = 'bw') {
     }
 
     const currentTime = (new Date().getTime() - startTime) / 1000.0;
-    setStatus(`${stepText}: ${i + 1}/${totalChunks}, 总用时: ${currentTime}s`);
+    const renderProgress = () => `${t(step === 'bw' ? '数据块' : '红色块')}: ${i + 1}/${totalChunks}, ${t('总用时:')} ${currentTime}s`;
+    setStatus(renderProgress(), renderProgress);
 
     const payload = [
       rleSupport
@@ -166,7 +169,7 @@ async function setDriver() {
 
 async function syncTime(mode) {
   if (mode === 2) {
-    if (!confirm('提醒：时钟模式目前使用全刷实现，此功能目前多用于修复老化屏残影问题，不建议长期开启，是否继续？')) return;
+    if (!confirm(t('提醒：时钟模式目前使用全刷实现，此功能目前多用于修复老化屏残影问题，不建议长期开启，是否继续？'))) return;
   }
   const timestamp = new Date().getTime() / 1000;
   const data = new Uint8Array([
@@ -178,16 +181,16 @@ async function syncTime(mode) {
     mode
   ]);
   if (await write(EpdCmd.SET_TIME, data)) {
-    addLog("时间已同步！");
-    addLog("屏幕刷新完成前请不要操作。");
+    addLog(t("时间已同步！"));
+    addLog(t("屏幕刷新完成前请不要操作。"));
   }
 }
 
 async function clearScreen() {
-  if (confirm('确认清除屏幕内容?')) {
+  if (confirm(t('确认清除屏幕内容?'))) {
     await write(EpdCmd.CLEAR);
-    addLog("清屏指令已发送！");
-    addLog("屏幕刷新完成前请不要操作。");
+    addLog(t("清屏指令已发送！"));
+    addLog(t("屏幕刷新完成前请不要操作。"));
   }
 }
 
@@ -227,7 +230,7 @@ function convertUC8159(blackWhiteData, redWhiteData) {
 
 async function sendimg() {
   if (cropManager.isCropMode()) {
-    alert("请先完成图片裁剪！发送已取消。");
+    alert(t("请先完成图片裁剪！发送已取消。"));
     return;
   }
 
@@ -237,10 +240,10 @@ async function sendimg() {
   const selectedOption = epdDriverSelect.options[epdDriverSelect.selectedIndex];
 
   if (selectedOption.getAttribute('data-size') !== canvasSize) {
-    if (!confirm("警告：画布尺寸和驱动不匹配，是否继续？")) return;
+    if (!confirm(t("警告：画布尺寸和驱动不匹配，是否继续？"))) return;
   }
   if (selectedOption.getAttribute('data-color') !== ditherMode) {
-    if (!confirm("警告：颜色模式和驱动不匹配，是否继续？")) return;
+    if (!confirm(t("警告：颜色模式和驱动不匹配，是否继续？"))) return;
   }
 
   startTime = new Date().getTime();
@@ -274,7 +277,7 @@ async function sendimg() {
   } else if (ditherMode === 'fourColor' || ditherMode === 'sixColor') {
     await writeImage(processedData, 'bw');
   } else {
-    addLog("当前固件不支持此颜色模式。");
+    addLog(t("当前固件不支持此颜色模式。"));
     updateButtonStatus();
     return;
   }
@@ -283,9 +286,10 @@ async function sendimg() {
   updateButtonStatus();
 
   const sendTime = (new Date().getTime() - startTime) / 1000.0;
-  addLog(`发送完成！耗时: ${sendTime}s`);
-  setStatus(`发送完成！耗时: ${sendTime}s`);
-  addLog("屏幕刷新完成前请不要操作。");
+  addLog(`${t('发送完成！耗时:')} ${sendTime}s`);
+  const renderDone = () => `${t('发送完成！耗时:')} ${sendTime}s`;
+  setStatus(renderDone(), renderDone);
+  addLog(t("屏幕刷新完成前请不要操作。"));
   setTimeout(() => {
     status.parentElement.style.display = "none";
   }, 5000);
@@ -293,7 +297,7 @@ async function sendimg() {
 
 function downloadDataArray() {
   if (cropManager.isCropMode()) {
-    alert("请先完成图片裁剪！下载已取消。");
+    alert(t("请先完成图片裁剪！下载已取消。"));
     return;
   }
 
@@ -302,8 +306,8 @@ function downloadDataArray() {
   const processedData = processImageData(imageData, mode);
 
   if (mode === 'sixColor' && processedData.length !== canvas.width * canvas.height) {
-    console.log(`错误：预期${canvas.width * canvas.height}字节，但得到${processedData.length}字节`);
-    addLog('数组大小不匹配。请检查图像尺寸和模式。');
+    console.log('Image data size mismatch', canvas.width * canvas.height, processedData.length);
+    addLog(t('数组大小不匹配。请检查图像尺寸和模式。'));
     return;
   }
 
@@ -353,8 +357,8 @@ function updateButtonStatus(forceDisabled = false) {
 function disconnect() {
   resetVariables();
   updateButtonStatus();
-  addLog('已断开连接.');
-  document.getElementById("connectbutton").innerHTML = '连接';
+  addLog(t('已断开连接.'));
+  document.getElementById("connectbutton").innerHTML = t('连接');
 }
 
 async function preConnect() {
@@ -372,11 +376,11 @@ async function preConnect() {
       });
     } catch (e) {
       console.error(e);
-      if (e.message) addLog("requestDevice: " + e.message);
-      addLog("请检查蓝牙是否已开启，且使用的浏览器支持蓝牙！建议使用以下浏览器：");
-      addLog("• 电脑: Chrome/Edge");
-      addLog("• Android: Chrome/Edge");
-      addLog("• iOS: Bluefy 浏览器");
+      addLog(t('request_device_failed'));
+      addLog(t("请检查蓝牙是否已开启，且使用的浏览器支持蓝牙！建议使用以下浏览器："));
+      addLog(t("• 电脑: Chrome/Edge"));
+      addLog(t("• Android: Chrome/Edge"));
+      addLog(t("• iOS: Bluefy 浏览器"));
       return;
     }
 
@@ -389,7 +393,7 @@ async function reConnect() {
   if (bleDevice != null && bleDevice.gatt.connected)
     bleDevice.gatt.disconnect();
   resetVariables();
-  addLog("正在重连");
+  addLog(t("正在重连"));
   setTimeout(async function () { await connect(); }, 300);
 }
 
@@ -397,7 +401,7 @@ function handleNotify(value, idx) {
   const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
   // Firmware notifications reuse the original 13-byte configuration payload.
   if (data.length === 13 && data[7] <= 0x20 && data[12] <= 1) {
-    addLog(`收到配置：${bytes2hex(data)}`);
+    addLog(`${t('收到配置：')}${bytes2hex(data)}`);
     const epdpins = document.getElementById("epdpins");
     const epddriver = document.getElementById("epddriver");
     epdpins.value = bytes2hex(data.slice(0, 7));
@@ -406,8 +410,9 @@ function handleNotify(value, idx) {
     updateDitcherOptions();
     deviceWeekStart = data[12];
     document.getElementById("weekstart").value = String(deviceWeekStart);
+    weekStatusKey = 'device_setting';
     document.getElementById("weekstartstatus").textContent =
-      `デバイスの設定: ${deviceWeekStart === 0 ? "日曜日" : "月曜日"}`;
+      t(weekStatusKey, {day: t(deviceWeekStart === 0 ? '日曜日' : '月曜日')});
     awaitingConfig = false;
     updateButtonStatus();
   } else {
@@ -417,15 +422,15 @@ function handleNotify(value, idx) {
     if (msg.startsWith('mtu=') && msg.length > 4) {
       const mtuSize = parseInt(msg.substring(4));
       document.getElementById('mtusize').value = mtuSize;
-      addLog(`MTU 已更新为: ${mtuSize}`);
+      addLog(`${t('MTU 已更新为:')} ${mtuSize}`);
       if (msg.includes('rle=1')) {
         rleSupport = true;
-        addLog('已开启 RLE 压缩传输支持');
+        addLog(t('已开启 RLE 压缩传输支持'));
       }
     } else if (msg.startsWith('t=') && msg.length > 2) {
-      const t = parseInt(msg.substring(2)) + new Date().getTimezoneOffset() * 60;
-      addLog(`远端时间: ${new Date(t * 1000).toLocaleString()}`);
-      addLog(`本地时间: ${new Date().toLocaleString()}`);
+      const remoteSeconds = parseInt(msg.substring(2)) + new Date().getTimezoneOffset() * 60;
+      addLog(`${t('远端时间:')} ${new Date(remoteSeconds * 1000).toLocaleString(webLocale)}`);
+      addLog(`${t('本地时间:')} ${new Date().toLocaleString(webLocale)}`);
     }
   }
 }
@@ -434,16 +439,16 @@ async function connect() {
   if (bleDevice == null || epdCharacteristic != null) return;
 
   try {
-    addLog("正在连接: " + bleDevice.name);
+    addLog(t('正在连接:') + ' ' + bleDevice.name);
     gattServer = await bleDevice.gatt.connect();
-    addLog('  找到 GATT Server');
+    addLog(t('  找到 GATT Server'));
     epdService = await gattServer.getPrimaryService('62750001-d828-918d-fb46-b6c11c675aec');
-    addLog('  找到 EPD Service');
+    addLog(t('  找到 EPD Service'));
     epdCharacteristic = await epdService.getCharacteristic('62750002-d828-918d-fb46-b6c11c675aec');
-    addLog('  找到 Characteristic');
+    addLog(t('  找到 Characteristic'));
   } catch (e) {
     console.error(e);
-    if (e.message) addLog("connect: " + e.message);
+    addLog(t('connect_failed'));
     disconnect();
     return;
   }
@@ -452,13 +457,13 @@ async function connect() {
     const versionCharacteristic = await epdService.getCharacteristic('62750003-d828-918d-fb46-b6c11c675aec');
     const versionData = await versionCharacteristic.readValue();
     appVersion = versionData.getUint8(0);
-    addLog(`固件版本: 0x${appVersion.toString(16)}${appVersion >= 0x1b ? ' (JP)' : ''}`);
+    addLog(`${t('固件版本:')} 0x${appVersion.toString(16)}${appVersion >= 0x1b ? ' (JP)' : ''}`);
   } catch (e) {
     console.error(e);
     appVersion = 0x15;
   }
 
-  if (appVersion < 0x16) addLog("旧版固件可能不支持部分功能。");
+  if (appVersion < 0x16) addLog(t("旧版固件可能不支持部分功能。"));
 
   try {
     awaitingConfig = true;
@@ -468,19 +473,20 @@ async function connect() {
     });
   } catch (e) {
     console.error(e);
-    if (e.message) addLog("startNotifications: " + e.message);
+    addLog(t('notification_failed'));
     awaitingConfig = false;
   }
 
   await write(EpdCmd.INIT);
   if (awaitingConfig) await write(EpdCmd.GET_CONFIG);
 
-  document.getElementById("connectbutton").innerHTML = '断开';
+  document.getElementById("connectbutton").innerHTML = t('断开');
   updateButtonStatus();
 }
 
-function setStatus(statusText) {
-  document.getElementById("status").innerHTML = statusText;
+function setStatus(statusText, render = null) {
+  statusRenderer = render;
+  document.getElementById("status").textContent = statusText;
 }
 
 function addLog(logTXT, action = '') {
@@ -545,7 +551,7 @@ function updateImage() {
       ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
       convertDithering();
     } else {
-      alert(`图片宽高比例与画布不匹配，将进入裁剪模式。\n请放大图片后移动图片使其充满画布, 再点击"完成"按钮。`);
+      alert(t('图片宽高比例与画布不匹配，将进入裁剪模式。\n请放大图片后移动图片使其充满画布, 再点击"完成"按钮。'));
       paintManager.setActiveTool(null, '');
       cropManager.initializeCrop();
     }
@@ -605,7 +611,7 @@ function rotateCanvas() {
 }
 
 function clearCanvas() {
-  if (confirm('清除画布内容?')) {
+  if (confirm(t('清除画布内容?'))) {
     fillCanvas('white');
     paintManager.clearElements(); // Clear stored text positions and line segments
     if (cropManager.isCropMode()) cropManager.exitCropMode();
@@ -661,14 +667,25 @@ function checkDebugMode() {
 
   if (debugMode === 'true') {
     document.body.classList.add('dark-mode');
-    link.innerHTML = '正常模式';
+    link.innerHTML = t('正常模式');
     link.setAttribute('href', window.location.pathname);
-    addLog("注意：开发模式功能已开启！不懂请不要随意修改，否则后果自负！");
+    addLog(t("注意：开发模式功能已开启！不懂请不要随意修改，否则后果自负！"));
   } else {
     document.body.classList.remove('dark-mode');
-    link.innerHTML = '开发模式';
+    link.innerHTML = t('开发模式');
     link.setAttribute('href', window.location.pathname + '?debug=true');
   }
+}
+
+function refreshLocalizedState() {
+  const connected = !!(gattServer && gattServer.connected);
+  document.getElementById('connectbutton').textContent = t(connected ? '断开' : '连接');
+  document.getElementById('weekstartstatus').textContent = weekStatusKey === 'device_setting'
+    ? t(weekStatusKey, {day: t(deviceWeekStart === 0 ? '日曜日' : '月曜日')})
+    : t(weekStatusKey);
+  const debugMode = new URLSearchParams(window.location.search).get('debug') === 'true';
+  document.getElementById('debug-toggle').textContent = t(debugMode ? '正常模式' : '开发模式');
+  if (statusRenderer) document.getElementById('status').textContent = statusRenderer();
 }
 
 document.body.onload = () => {
@@ -694,12 +711,14 @@ async function setWeekStart() {
   const value = Number(selection.value);
   if (!gattServer || !gattServer.connected || deviceWeekStart === null || (value !== 0 && value !== 1)) return;
   document.getElementById("setweekstartbutton").disabled = true;
-  document.getElementById("weekstartstatus").textContent = "デバイスに保存しています…";
+  weekStatusKey = 'saving_device';
+  document.getElementById("weekstartstatus").textContent = t(weekStatusKey);
   awaitingConfig = true;
   if (!await write(EpdCmd.SET_WEEK_START, new Uint8Array([value]))) {
     awaitingConfig = false;
     selection.value = String(deviceWeekStart);
-    document.getElementById("weekstartstatus").textContent = "保存に失敗しました。";
+    weekStatusKey = 'save_failed';
+    document.getElementById("weekstartstatus").textContent = t(weekStatusKey);
     updateButtonStatus();
   } else {
     await write(EpdCmd.GET_CONFIG);

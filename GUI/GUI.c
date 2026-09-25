@@ -1,6 +1,7 @@
 #include "GUI.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "JapaneseCalendar.h"
 #include "JapaneseRokuyo.h"
@@ -8,6 +9,23 @@
 #include "fonts.h"
 
 #define JP_SATURDAY_RED 0
+enum {
+    HEADER_HEIGHT = 52,
+    MONTH_BLOCK_WIDTH = 58,
+    META_COL1_X = 76,
+    META_COL2_X = 151,
+    META_ROW1_Y = 19,
+    META_ROW2_Y = 40,
+    STATUS_LEFT_X = 296,
+    STATUS_RIGHT_X = 390,
+    YEAR_Y = 18,
+    MONTH_Y = 43,
+};
+
+static const char* const JP_WAFU_MONTHS[12] = {
+    "睦月", "如月", "弥生", "卯月", "皐月", "水無月",
+    "文月", "葉月", "長月", "神無月", "霜月", "師走",
+};
 #define GFX_printf_styled(gfx, fg, bg, font, ...) \
     GFX_setTextColor(gfx, fg, bg);                \
     GFX_setFont(gfx, font);                       \
@@ -72,40 +90,68 @@ static uint8_t GetWeekOfYear(uint8_t year, uint8_t mon, uint8_t mday, uint8_t wd
 static void DrawDateHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui_data_t* data) {
     uint16_t year = (uint16_t)(tm->tm_year + YEAR0);
     uint8_t reiwa = jp_reiwa_year(year, (uint8_t)(tm->tm_mon + 1U), tm->tm_mday);
-    GFX_setCursor(gfx, x, y - 2);
-    GFX_printf_styled(gfx, GFX_RED, GFX_WHITE, u8g2_font_helvB18_tn, "%d", year);
-    GFX_printf_styled(gfx, GFX_BLACK, GFX_WHITE, u8g2_font_wqy12_t_lunar, "年");
-    GFX_printf_styled(gfx, GFX_RED, GFX_WHITE, u8g2_font_helvB18_tn, "%d", tm->tm_mon + 1);
-    GFX_printf_styled(gfx, GFX_BLACK, GFX_WHITE, u8g2_font_wqy12_t_lunar, "月");
+    char year_text[6], month_text[3], device_name[24];
+    int16_t width, left, i;
+    (void)x;
+    (void)y;
 
-    int16_t tx = gfx->tx + 4;
-    int16_t ty = y;
+    GFX_fillRect(gfx, 0, 0, data->width, HEADER_HEIGHT, GFX_BLACK);
+    GFX_fillRect(gfx, 0, 0, MONTH_BLOCK_WIDTH, HEADER_HEIGHT, GFX_RED);
+    GFX_drawFastVLine(gfx, MONTH_BLOCK_WIDTH + 7, 4, HEADER_HEIGHT - 8, GFX_WHITE);
+    GFX_drawFastVLine(gfx, STATUS_LEFT_X - 8, 4, HEADER_HEIGHT - 8, GFX_WHITE);
+
+    snprintf(year_text, sizeof(year_text), "%u", year);
+    snprintf(month_text, sizeof(month_text), "%02u", (unsigned)(tm->tm_mon + 1));
+    GFX_setTextColor(gfx, GFX_WHITE, GFX_RED);
+    GFX_setFont(gfx, u8g2_font_helvB14_tn);
+    width = GFX_getUTF8Width(gfx, year_text);
+    GFX_setCursor(gfx, (MONTH_BLOCK_WIDTH - width) / 2, YEAR_Y);
+    GFX_printf(gfx, "%s", year_text);
+    GFX_setFont(gfx, u8g2_font_helvB18_tn);
+    width = GFX_getUTF8Width(gfx, month_text);
+    GFX_setCursor(gfx, (MONTH_BLOCK_WIDTH - width) / 2, MONTH_Y);
+    GFX_printf(gfx, "%s", month_text);
 
     GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
-    int16_t era_baseline = ty + GFX_getFontDescent(gfx);
-    int16_t eto_baseline = era_baseline - GFX_getFontHeight(gfx) - 3;
-    GFX_setTextColor(gfx, GFX_BLACK, GFX_WHITE);
-    GFX_setCursor(gfx, tx, eto_baseline);
-    GFX_printf(gfx, "%s%s年 [%s]", jp_eto_stem(year), jp_eto_branch(year), jp_eto_animal(year));
-    GFX_setCursor(gfx, tx, era_baseline);
+    GFX_setTextColor(gfx, GFX_WHITE, GFX_BLACK);
+    GFX_setCursor(gfx, META_COL1_X, META_ROW1_Y);
     if (reiwa == 1U)
-        GFX_printf(gfx, " 令和元年");
+        GFX_printf(gfx, "令和元年");
     else if (reiwa != 0U)
-        GFX_printf(gfx, " 令和%d年", reiwa);
-    GFX_setTextColor(gfx, GFX_RED, GFX_WHITE);
-    GFX_printf(gfx, " [%d週]", GetWeekOfYear(tm->tm_year, tm->tm_mon, tm->tm_mday, tm->tm_wday));
+        GFX_printf(gfx, "令和%d年", reiwa);
+    GFX_setCursor(gfx, META_COL2_X, META_ROW1_Y);
+    GFX_printf(gfx, "%s%s年 [%s]", jp_eto_stem(year), jp_eto_branch(year), jp_eto_animal(year));
+    GFX_setCursor(gfx, META_COL1_X, META_ROW2_Y);
+    GFX_printf(gfx, "%s", JP_WAFU_MONTHS[tm->tm_mon]);
+    GFX_setCursor(gfx, META_COL2_X, META_ROW2_Y);
+    GFX_printf(gfx, "第%d週", GetWeekOfYear(tm->tm_year, tm->tm_mon, tm->tm_mday, tm->tm_wday));
 
-    GFX_setTextColor(gfx, GFX_BLACK, GFX_WHITE);
-    DrawBattery(gfx, data->width - 10 - 2, large_layout(data) ? 16 : 6, 20, data->voltage);
-    GFX_setCursor(gfx, data->width - GFX_getUTF8Width(gfx, data->ssid) - 10, y);
-    GFX_printf(gfx, "%s", data->ssid);
+    /* Keep variable device names within the fixed status block. */
+    snprintf(device_name, sizeof(device_name), "%s", data->ssid);
+    while (GFX_getUTF8Width(gfx, device_name) > STATUS_RIGHT_X - STATUS_LEFT_X - 4) {
+        i = (int16_t)strlen(device_name);
+        if (i == 0) break;
+        device_name[i - 1] = '\0';
+    }
+    width = GFX_getUTF8Width(gfx, device_name);
+    GFX_setCursor(gfx, STATUS_LEFT_X + (STATUS_RIGHT_X - STATUS_LEFT_X - width) / 2, META_ROW1_Y);
+    GFX_printf(gfx, "%s", device_name);
+    GFX_drawFastHLine(gfx, STATUS_LEFT_X, 27, STATUS_RIGHT_X - STATUS_LEFT_X, GFX_WHITE);
+    GFX_setCursor(gfx, STATUS_LEFT_X + 2, META_ROW2_Y);
+    GFX_printf(gfx, "%u%%", batt_cal(data->voltage));
+    left = STATUS_LEFT_X + 38;
+    GFX_drawRect(gfx, left, 32, 19, 10, GFX_WHITE);
+    GFX_fillRect(gfx, left + 19, 35, 2, 4, GFX_WHITE);
+    GFX_fillRect(gfx, left + 2, 34, 15 * batt_cal(data->voltage) / 100, 6, GFX_WHITE);
+    GFX_setCursor(gfx, STATUS_LEFT_X + 63, META_ROW2_Y);
+    GFX_printf(gfx, "%u.%uV", data->voltage / 1000, (data->voltage % 1000) / 100);
 }
 
 static void DrawWeekHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, gui_data_t* data) {
     static const char WEEKDAYS[7][4] = {"日", "月", "火", "水", "木", "金", "土"};
     GFX_setFont(gfx, large_layout(data) ? u8g2_font_wqy12_t_lunar : u8g2_font_wqy9_t_lunar);
     uint8_t w = (data->width - 2 * x) / 7;
-    uint8_t h = large_layout(data) ? 32 : 24;
+    uint8_t h = large_layout(data) ? 32 : 12;
     uint8_t r = (data->width - 2 * x) % 7;
     uint8_t fh = (h - GFX_getFontHeight(gfx)) / 2 + GFX_getFontAscent(gfx) + 1;
     int16_t cw = GFX_getUTF8Width(gfx, WEEKDAYS[0]);
@@ -233,7 +279,7 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
 static void DrawCalendar(Adafruit_GFX* gfx, tm_t* tm, gui_data_t* data) {
     bool large = large_layout(data);
     DrawDateHeader(gfx, 10, large ? 38 : 28, tm, data);
-    DrawWeekHeader(gfx, 10, large ? 44 : 32, data);
+    DrawWeekHeader(gfx, 10, large ? 52 : HEADER_HEIGHT, data);
     DrawMonthDays(gfx, 10, large ? 84 : 64, tm, data);
 }
 
