@@ -47,6 +47,11 @@ Keil/Listings/*
 Keil/Objects/*
 Keil/_build*/
 _build/
+build/
+__pycache__/
+artifacts/japanese-calendar/*.log
+artifacts/japanese-calendar/*.ppm
+artifacts/japanese-calendar/rollback-test.c
 
 # Debugger files
 # define exception below if needed
