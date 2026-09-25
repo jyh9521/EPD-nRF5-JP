@@ -1,0 +1,46 @@
+EPD-nRF5-JP verification record
+Branch: codex/feature-japanese-calendar
+Changed branch/field: EPD_CMD_SET_WEEK_START 0x21; epd_config_t.week_start byte 12; EPD_CMD_GET_CONFIG 0x22; html/#weekstart.
+Workspace: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP
+MODIFIED_FILE: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\artifacts\japanese-calendar\MODIFIED_FILE
+DIFF_FILE: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\artifacts\japanese-calendar\DIFF_FILE
+VERIFICATION.txt: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\artifacts\japanese-calendar\VERIFICATION.txt
+ROLLBACK.sh: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\artifacts\japanese-calendar\ROLLBACK.sh
+Original source: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\artifacts\japanese-calendar\EPD_service.c.original
+Original SHA-256: F5658B643877EBEA12C4B3219598DD14E6BD0C0BB2896DC98823B1B92CA8E8C0
+Modified SHA-256: 0A8FB0A726B9EED4CCFFAFA5D10BCDE46AD74A262089CD44385CDE869C04DA97
+
+BASELINE command (cwd=C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP):
+python -c "from pathlib import Path; x=Path('artifacts/japanese-calendar/EPD_service.c.original').read_bytes(); print('BASELINE: SET_WEEK_START='+str(b'EPD_CMD_SET_WEEK_START' in x)+', GET_CONFIG='+str(b'EPD_CMD_GET_CONFIG' in x))"
+BASELINE input: original EPD_service.c from HEAD 7e3196193997bd6a4644610c41d54a76eff88760.
+BASELINE literal output: BASELINE: SET_WEEK_START=True, GET_CONFIG=False
+BASELINE exit status: 0
+BASELINE original behavior: 0x21 writes week_start to FDS; no explicit get-config command or project Web UI control.
+
+MODIFIED command (cwd=C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP):
+python -c "from pathlib import Path; x=Path('artifacts/japanese-calendar/MODIFIED_FILE').read_bytes(); print('MODIFIED: SET_WEEK_START='+str(b'EPD_CMD_SET_WEEK_START' in x)+', GET_CONFIG='+str(b'EPD_CMD_GET_CONFIG' in x))"
+MODIFIED input: MODIFIED_FILE copy of EPD_service.c.
+MODIFIED literal output: MODIFIED: SET_WEEK_START=True, GET_CONFIG=True
+MODIFIED exit status: 0
+MODIFIED test command: node tests/test_week_start_web.js
+MODIFIED test literal output: Web week-start BLE/UI test: PASS
+MODIFIED test exit status: 0
+MODIFIED behavior: firmware persists Sunday=0/Monday=1 in FDS, 0x22 notifies existing 13-byte config, and Web UI reloads device byte 12 after reconnect.
+
+ROLLBACK command (cwd=C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP):
+& 'C:\Program Files\Git\bin\bash.exe' artifacts/japanese-calendar/ROLLBACK.sh artifacts/japanese-calendar/rollback-test.c
+ROLLBACK input: rollback-test.c copied from MODIFIED_FILE, not live source.
+ROLLBACK literal output: f5658b643877ebea12c4b3219598dd14e6bd0c0bb2896dc98823b1b92ca8e8c0 *artifacts/japanese-calendar/rollback-test.c
+ROLLBACK exit status: 0
+ROLLBACK restored behavior/status: test copy equals original SHA-256 F5658B643877EBEA12C4B3219598DD14E6BD0C0BB2896DC98823B1B92CA8E8C0; GET_CONFIG absent; live MODIFIED_FILE SHA-256 remains 0A8FB0A726B9EED4CCFFAFA5D10BCDE46AD74A262089CD44385CDE869C04DA97.
+
+Build command: python tools/build_nrf52811.py --toolchain C:\Temp\gcc-arm\gcc-arm-none-eabi-10.3-2021.10
+Build result/exit: ELF, HEX and BIN generated; exit 0.
+Baseline (GNU -Os -flto, original HEAD): FLASH 59628 B, RAM 1920 B, BIN 59628 B, HEX end 0x278EC. Baseline was measured with original wide linker region and exceeds OTA-safe region.
+Modified: FLASH 52700 B, RAM 1776 B, BIN 52700 B, HEX end 0x25DDC; remaining to 0x26000 = 548 B.
+Delta: FLASH -6928 B, RAM -144 B, BIN -6928 B.
+Package command: python tools/package_nrf52811_ota.py build/nrf52811/EPD-nRF52811-JP.hex
+Package result/exit: signed application-only OTA ZIP, settings HEX, merged full HEX, SHA-256 manifest; exit 0. OTA metadata application version 0x1b, S112 0x126.
+Firmware paths: C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\build\nrf52811\EPD-nRF52811-JP.hex ; C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\build\nrf52811\EPD-nRF52811-JP.bin ; C:\Users\noway\Documents\ChatGPT\EPD-nRF5-JP\build\nrf52811\EPD-nRF52811-JP-ota.zip.
+Other tests: JapaneseCalendar tests: PASS; GitHub Pages static assets/workflow test: PASS; Web week-start BLE/UI test: PASS; ZIP_TEST=None (no corrupt member); no physical OTA performed.
+Pages live URL observation: HTTP/1.1 301 Moved Permanently; Location: http://blog.blfy.top/EPD-nRF5-JP/. Repository workflow is configured to publish html/ from main, but hosted URL presently redirects via remote Pages custom-domain configuration.

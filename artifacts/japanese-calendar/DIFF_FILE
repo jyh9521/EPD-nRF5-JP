@@ -1,0 +1,290 @@
+diff --git a/EPD/EPD_service.c b/EPD/EPD_service.c
+index a3c5f5e..4eceb31 100644
+--- a/EPD/EPD_service.c
++++ b/EPD/EPD_service.c
+@@ -117,6 +117,11 @@ static void epd_update_display_mode(ble_epd_t* p_epd, display_mode_t mode) {
+     }
+ }
+ 
++static void epd_send_config(ble_epd_t* p_epd) {
++    uint32_t err_code = ble_epd_string_send(p_epd, (uint8_t*)&p_epd->config, sizeof(p_epd->config));
++    if (err_code != NRF_ERROR_INVALID_STATE) APP_ERROR_CHECK(err_code);
++}
++
+ static void epd_send_time(ble_epd_t* p_epd) {
+     char buf[20] = {0};
+     snprintf(buf, 20, "t=%" PRIu32, timestamp());
+@@ -204,10 +209,17 @@ static void epd_service_on_write(ble_epd_t* p_epd, uint8_t* p_data, uint16_t len
+ 
+         case EPD_CMD_SET_WEEK_START:
+             if (length < 2) return;
+-            if (p_data[1] < 7 && p_data[1] != p_epd->config.week_start) {
++            if (p_data[1] <= 1 && p_data[1] != p_epd->config.week_start) {
+                 p_epd->config.week_start = p_data[1];
+                 epd_config_write(&p_epd->config);
++                if (p_epd->config.display_mode == MODE_CALENDAR)
++                    ble_epd_on_timer(p_epd, timestamp(), true);
+             }
++            epd_send_config(p_epd);
++            break;
++
++        case EPD_CMD_GET_CONFIG:
++            epd_send_config(p_epd);
+             break;
+ 
+         case EPD_CMD_WRITE_IMAGE: {
+@@ -238,7 +250,9 @@ static void epd_service_on_write(ble_epd_t* p_epd, uint8_t* p_data, uint16_t len
+         case EPD_CMD_SET_CONFIG:
+             if (length < 2) return;
+             memcpy(&p_epd->config, &p_data[1], (length - 1 > EPD_CONFIG_SIZE) ? EPD_CONFIG_SIZE : length - 1);
++            if (p_epd->config.week_start > 1) p_epd->config.week_start = 0;
+             epd_config_write(&p_epd->config);
++            epd_send_config(p_epd);
+             break;
+ 
+         case EPD_CMD_SYS_SLEEP:
+@@ -276,10 +290,8 @@ static void on_write(ble_epd_t* p_epd, ble_evt_t* p_ble_evt) {
+         if (ble_srv_is_notification_enabled(p_evt_write->data)) {
+             NRF_LOG_DEBUG("notification enabled\n");
+             p_epd->is_notification_enabled = true;
+-            static uint16_t length = sizeof(epd_config_t);
+             NRF_LOG_DEBUG("send epd config\n");
+-            uint32_t err_code = ble_epd_string_send(p_epd, (uint8_t*)&p_epd->config, length);
+-            if (err_code != NRF_ERROR_INVALID_STATE) APP_ERROR_CHECK(err_code);
++            epd_send_config(p_epd);
+         } else {
+             p_epd->is_notification_enabled = false;
+         }
+@@ -397,7 +409,13 @@ uint32_t ble_epd_init(ble_epd_t* p_epd) {
+         memcpy(&p_epd->config, cfg, sizeof(cfg));
+ #endif
+         if (p_epd->config.display_mode == 0xFF) p_epd->config.display_mode = MODE_CALENDAR;
+-        if (p_epd->config.week_start == 0xFF) p_epd->config.week_start = 0;
++        if (p_epd->config.week_start > 1) p_epd->config.week_start = 0;
++        epd_config_write(&p_epd->config);
++    }
++
++    /* Older persisted records may contain 0xFF or unsupported weekday values. */
++    if (p_epd->config.week_start > 1) {
++        p_epd->config.week_start = 0;
+         epd_config_write(&p_epd->config);
+     }
+ 
+diff --git a/EPD/EPD_service.h b/EPD/EPD_service.h
+index 74e522c..6847cca 100644
+--- a/EPD/EPD_service.h
++++ b/EPD/EPD_service.h
+@@ -42,7 +42,7 @@ void ble_epd_evt_handler(ble_evt_t const* p_ble_evt, void* p_context);
+ #define BLE_EPD_DEF(_name) static ble_epd_t _name;
+ #endif
+ 
+-#define APP_VERSION 0x1a
++#define APP_VERSION 0x1b /* Japanese Edition, first calendar release */
+ 
+ #define BLE_UUID_EPD_SVC_BASE \
+     {{0XEC, 0X5A, 0X67, 0X1C, 0XC1, 0XB6, 0X46, 0XFB, 0X8D, 0X91, 0X28, 0XD8, 0X22, 0X36, 0X75, 0X62}}
+@@ -70,7 +70,8 @@ enum EPD_CMDS {
+     EPD_CMD_SLEEP = 0x06,        /**< EPD enter sleep mode */
+ 
+     EPD_CMD_SET_TIME = 0x20,       /** < set time with unix timestamp */
+-    EPD_CMD_SET_WEEK_START = 0x21, /** < set week start day (0: Sunday, 1: Monday, ...) */
++    EPD_CMD_SET_WEEK_START = 0x21, /** < set week start day (0: Sunday, 1: Monday) */
++    EPD_CMD_GET_CONFIG = 0x22,     /** < notify the existing 13-byte config payload */
+ 
+     EPD_CMD_WRITE_IMAGE = 0x30, /** < write image data to EPD ram */
+ 
+diff --git a/html/index.html b/html/index.html
+index dcd1f8d..d49a69c 100644
+--- a/html/index.html
++++ b/html/index.html
+@@ -1,17 +1,17 @@
+ <!doctype html>
+-<html lang="en">
++<html lang="ja">
+ 
+ <head>
+ 	<meta charset="utf-8">
+ 	<meta name="viewport" content="width=device-width, initial-scale=1">
+-	<title>墨水屏日历</title>
++	<title>EPD-nRF5-JP Web Controller</title>
+ 	<link rel="shortcut icon" type="image/png" href="favicon.png">
+ 	<link rel="stylesheet" href="css/main.css?v=20251109">
+ </head>
+ 
+ <body>
+ 	<div class="main">
+-		<h3>墨水屏日历</h3>
++		<h3>EPD-nRF5-JP Web Controller</h3>
+ 		<fieldset>
+ 			<legend>蓝牙连接</legend>
+ 			<div class="flex-container">
+@@ -64,6 +64,20 @@
+ 				</div>
+ 			</div>
+ 		</fieldset>
++		<fieldset>
++			<legend>カレンダー設定</legend>
++			<div class="flex-container">
++				<div class="flex-group">
++					<label for="weekstart">週の開始曜日</label>
++					<select id="weekstart" disabled>
++						<option value="0">日曜日</option>
++						<option value="1">月曜日</option>
++					</select>
++					<button id="setweekstartbutton" type="button" class="primary" onclick="setWeekStart()" disabled>設定を保存</button>
++				</div>
++			</div>
++			<small id="weekstartstatus" aria-live="polite">デバイスに接続すると現在の設定を読み込みます。</small>
++		</fieldset>
+ 		<fieldset>
+ 			<legend>蓝牙传图</legend>
+ 			<div class="flex-container">
+@@ -234,7 +248,7 @@
+ 		<div class="footer">
+ 			<span class="copy">&copy; 2025 tsl0922.</span>
+ 			<span class="links">
+-				<a href="https://github.com/tsl0922/EPD-nRF5">Github</a>
++				<a href="https://github.com/jyh9521/EPD-nRF5-JP">GitHub</a>
+ 				<a href="https://qm.qq.com/q/SckzhfDxuu" onclick="return confirm('本群是此开源固件作者的技术交流群\n如果你购买了成品，请找卖家提供售后！')">交流群</a>
+ 				<a href="?debug=true" id="debug-toggle">开发模式</a>
+ 			</span>
+@@ -256,4 +270,4 @@
+ 	</script>
+ </body>
+ 
+-</html>
+\ No newline at end of file
++</html>
+diff --git a/html/js/main.js b/html/js/main.js
+index c0b2492..1ef75ef 100644
+--- a/html/js/main.js
++++ b/html/js/main.js
+@@ -4,6 +4,8 @@ let startTime, msgIndex, appVersion;
+ let canvas, ctx, textDecoder;
+ let paintManager, cropManager;
+ let rleSupport;
++let deviceWeekStart = null;
++let awaitingConfig = false;
+ 
+ const EpdCmd = {
+   SET_PINS: 0x00,
+@@ -15,6 +17,8 @@ const EpdCmd = {
+   SLEEP: 0x06,
+ 
+   SET_TIME: 0x20,
++  SET_WEEK_START: 0x21,
++  GET_CONFIG: 0x22,
+ 
+   WRITE_IMG: 0x30, // v1.6
+ 
+@@ -77,6 +81,10 @@ function resetVariables() {
+   epdCharacteristic = null;
+   msgIndex = 0;
+   rleSupport = false;
++  deviceWeekStart = null;
++  awaitingConfig = false;
++  document.getElementById("weekstart").value = "0";
++  document.getElementById("weekstartstatus").textContent = "デバイスに接続すると現在の設定を読み込みます。";
+   document.getElementById("log").value = '';
+ }
+ 
+@@ -338,11 +346,13 @@ function updateButtonStatus(forceDisabled = false) {
+   document.getElementById("clearscreenbutton").disabled = status;
+   document.getElementById("sendimgbutton").disabled = status;
+   document.getElementById("setDriverbutton").disabled = status;
++  document.getElementById("weekstart").disabled = forceDisabled || !connected || deviceWeekStart === null;
++  document.getElementById("setweekstartbutton").disabled = forceDisabled || !connected || deviceWeekStart === null;
+ }
+ 
+ function disconnect() {
+-  updateButtonStatus();
+   resetVariables();
++  updateButtonStatus();
+   addLog('已断开连接.');
+   document.getElementById("connectbutton").innerHTML = '连接';
+ }
+@@ -385,7 +395,8 @@ async function reConnect() {
+ 
+ function handleNotify(value, idx) {
+   const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+-  if (idx == 0) {
++  // Firmware notifications reuse the original 13-byte configuration payload.
++  if (data.length === 13 && data[7] <= 0x20 && data[12] <= 1) {
+     addLog(`收到配置：${bytes2hex(data)}`);
+     const epdpins = document.getElementById("epdpins");
+     const epddriver = document.getElementById("epddriver");
+@@ -393,6 +404,12 @@ function handleNotify(value, idx) {
+     if (data.length > 10) epdpins.value += bytes2hex(data.slice(10, 11));
+     epddriver.value = bytes2hex(data.slice(7, 8));
+     updateDitcherOptions();
++    deviceWeekStart = data[12];
++    document.getElementById("weekstart").value = String(deviceWeekStart);
++    document.getElementById("weekstartstatus").textContent =
++      `デバイスの設定: ${deviceWeekStart === 0 ? "日曜日" : "月曜日"}`;
++    awaitingConfig = false;
++    updateButtonStatus();
+   } else {
+     if (textDecoder == null) textDecoder = new TextDecoder();
+     const msg = textDecoder.decode(data);
+@@ -435,22 +452,16 @@ async function connect() {
+     const versionCharacteristic = await epdService.getCharacteristic('62750003-d828-918d-fb46-b6c11c675aec');
+     const versionData = await versionCharacteristic.readValue();
+     appVersion = versionData.getUint8(0);
+-    addLog(`固件版本: 0x${appVersion.toString(16)}`);
++    addLog(`固件版本: 0x${appVersion.toString(16)}${appVersion >= 0x1b ? ' (JP)' : ''}`);
+   } catch (e) {
+     console.error(e);
+     appVersion = 0x15;
+   }
+ 
+-  if (appVersion < 0x16) {
+-    const oldURL = "https://tsl0922.github.io/EPD-nRF5/v1.5";
+-    alert("!!!注意!!!\n当前固件版本过低，可能无法正常使用部分功能，建议升级到最新版本。");
+-    if (confirm('是否访问旧版本上位机？')) location.href = oldURL;
+-    setTimeout(() => {
+-      addLog(`如遇到问题，可访问旧版本上位机: ${oldURL}`);
+-    }, 500);
+-  }
++  if (appVersion < 0x16) addLog("旧版固件可能不支持部分功能。");
+ 
+   try {
++    awaitingConfig = true;
+     await epdCharacteristic.startNotifications();
+     epdCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+       handleNotify(event.target.value, msgIndex++);
+@@ -458,9 +469,11 @@ async function connect() {
+   } catch (e) {
+     console.error(e);
+     if (e.message) addLog("startNotifications: " + e.message);
++    awaitingConfig = false;
+   }
+ 
+   await write(EpdCmd.INIT);
++  if (awaitingConfig) await write(EpdCmd.GET_CONFIG);
+ 
+   document.getElementById("connectbutton").innerHTML = '断开';
+   updateButtonStatus();
+@@ -674,4 +687,21 @@ document.body.onload = () => {
+   initEventHandlers();
+   updateButtonStatus();
+   checkDebugMode();
+-}
+\ No newline at end of file
++}
++
++async function setWeekStart() {
++  const selection = document.getElementById("weekstart");
++  const value = Number(selection.value);
++  if (!gattServer || !gattServer.connected || deviceWeekStart === null || (value !== 0 && value !== 1)) return;
++  document.getElementById("setweekstartbutton").disabled = true;
++  document.getElementById("weekstartstatus").textContent = "デバイスに保存しています…";
++  awaitingConfig = true;
++  if (!await write(EpdCmd.SET_WEEK_START, new Uint8Array([value]))) {
++    awaitingConfig = false;
++    selection.value = String(deviceWeekStart);
++    document.getElementById("weekstartstatus").textContent = "保存に失敗しました。";
++    updateButtonStatus();
++  } else {
++    await write(EpdCmd.GET_CONFIG);
++  }
++}
