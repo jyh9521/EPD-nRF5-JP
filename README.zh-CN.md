@@ -20,14 +20,14 @@
 
 ## 打开项目自己的 Web 控制页面
 
-仓库内的 [`html/`](html/) 是项目自己的 Web Bluetooth 控制页面。请在自己的电脑上启动本地服务器（Windows CMD）：
+仓库内的 [`html/`](html/) 是项目自己的 Web Bluetooth 控制页面。可以用 Chrome 或 Edge 打开[在线控制页面](https://blog.blfy.cc/EPD-nRF5-JP/)；如需在本地使用，也可以在电脑上启动服务器（Windows CMD）：
 
 ```cmd
 cd /d C:\path\to\EPD-nRF5-JP
 python -m http.server 8000 --directory html
 ```
 
-在 Chrome 或 Edge 打开 <http://localhost:8000/>，再通过蓝牙连接设备。对于 `0x1d` 及之后的 JP 固件，页面会读取设备配置；设备处于日历或时钟模式、且时间偏差超过 60 秒时，会自动校时并刷新。需要时也可以点击“日历模式”，手动同步时间并重绘。Web 控制页面**不负责上传 OTA 固件**。
+本地使用时打开 <http://localhost:8000/>，再通过蓝牙连接设备。对于 `0x1d` 及之后的 JP 固件，页面会读取设备配置；设备处于日历或时钟模式、且时间偏差超过 60 秒时，会自动校时并刷新。需要时也可以点击“日历模式”，手动同步时间并重绘。Web 控制页面**不负责上传 OTA 固件**。
 
 ## 构建固件
 
@@ -46,7 +46,7 @@ python tools\package_nrf52811_ota.py build\nrf52811\EPD-nRF52811-JP.hex
 1. 按上面的命令构建固件，把 `build/nrf52811/EPD-nRF52811-JP-ota.zip` 复制到 Android 手机，保持 ZIP 原样，不要解压。
 2. 安装 Nordic Semiconductor 的 [nRF Device Firmware Update（Android）](https://play.google.com/store/apps/details?id=no.nordicsemi.android.dfu)，打开手机蓝牙。
 3. 先断开网页等程序与墨水屏的蓝牙连接；在应用中选择目标设备，再选取复制到手机的 `-ota.zip`，开始 DFU。
-4. 等应用显示更新完成、设备重新启动后，用本地 Web 控制页面连接，确认固件版本及屏幕型号 `03`。
+4. 等应用显示更新完成、设备重新启动后，用 Web 控制页面连接，确认固件版本及屏幕型号 `03`。
 
 手机 OTA 应选择**应用固件 `-ota.zip`**，不要选择 `-full.hex`。设备 Bootloader 的签名公钥及 SoftDevice 必须与 DFU 包匹配。
 

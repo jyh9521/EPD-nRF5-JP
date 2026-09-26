@@ -24,14 +24,14 @@
 
 ## Web コントローラー
 
-Web Bluetooth コントローラーは、このリポジトリの [`html/`](html/) に含まれています。各自の PC でローカルサーバーを起動して使用してください（Windows CMD）：
+Web Bluetooth コントローラーは、このリポジトリの [`html/`](html/) に含まれています。Chrome または Edge で [公開ページ](https://blog.blfy.cc/EPD-nRF5-JP/) を開いて使用できます。ローカルで使う場合は、PC でサーバーを起動してください（Windows CMD）：
 
 ```cmd
 cd /d C:\path\to\EPD-nRF5-JP
 python -m http.server 8000 --directory html
 ```
 
-Chrome または Edge で <http://localhost:8000/> を開き、Bluetooth で端末に接続します。`0x1d` 以降の JP ファームウェアでは接続時に設定を読み、カレンダー／時計モードで端末時刻が 60 秒を超えてずれていれば自動同期して画面を更新します。必要に応じて「カレンダーモード」を選択すると、時刻同期と再描画を手動でも実行できます。
+ローカルの場合は <http://localhost:8000/> を開き、Bluetooth で端末に接続します。`0x1d` 以降の JP ファームウェアでは接続時に設定を読み、カレンダー／時計モードで端末時刻が 60 秒を超えてずれていれば自動同期して画面を更新します。必要に応じて「カレンダーモード」を選択すると、時刻同期と再描画を手動でも実行できます。
 
 Web UI は **DFU クライアントではありません**。OTA 更新には nRF5 SDK Secure DFU に対応したアプリを使用します。
 
@@ -52,7 +52,7 @@ python tools\package_nrf52811_ota.py build\nrf52811\EPD-nRF52811-JP.hex
 1. 上記のビルドを実行し、`build/nrf52811/EPD-nRF52811-JP-ota.zip` を Android スマートフォンにコピーします。ZIP は展開しません。
 2. Nordic Semiconductor の [nRF Device Firmware Update（Android）](https://play.google.com/store/apps/details?id=no.nordicsemi.android.dfu) をインストールし、Bluetooth を有効にします。
 3. Web コントローラーなど、端末との既存の Bluetooth 接続を切断します。アプリで対象端末を選び、コピーした `-ota.zip` を指定して DFU を開始します。
-4. アプリが更新完了を表示し、端末が再起動するまで待ちます。その後、ローカルの Web コントローラーへ接続し、ファームウェアバージョンと画面モデル `03` を確認します。
+4. アプリが更新完了を表示し、端末が再起動するまで待ちます。その後、Web コントローラーへ接続し、ファームウェアバージョンと画面モデル `03` を確認します。
 
 スマートフォンからの OTA には**アプリケーション専用の `-ota.zip`** を使用します。`-full.hex` は選択しません。DFU パッケージは端末の Bootloader の署名鍵・SoftDevice と一致する必要があります。
 
