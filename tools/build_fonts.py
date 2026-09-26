@@ -2,16 +2,16 @@
 import subprocess
 import os
 import sys
-from build_compact_font import holiday_codes
+from build_compact_font import holiday_codes, lunar_codes, rokuyo_codes
 
 FONT_TXT = "font.txt"
 
 FONTS = [
     {
-        'name': f"u8g2_font_wqy9_t_lunar",
-        'bdf': f"fonts/wenquanyi_9ptb.bdf",
-        'ascii': "32-128",
-        'source': "font.txt",
+        'name': "u8g2_font_jp_ui_medium11",
+        'bdf': "fonts/epd_jp_ui_medium11.bdf",
+        'ascii': None,
+        'source': "jp_ui",
     },
     {
         'name': f"u8g2_font_wqy12_t_lunar",
@@ -21,9 +21,15 @@ FONTS = [
     },
     {
         'name': "u8g2_font_jp_holiday_compact",
-        'bdf': "fonts/epd_jp_ui_medium.bdf",
+        'bdf': "fonts/epd_jp_holiday_medium10.bdf",
         'ascii': None,
         'source': None,
+    },
+    {
+        'name': "u8g2_font_jp_rokuyo_readable",
+        'bdf': "fonts/epd_jp_rokuyo_regular12.bdf",
+        'ascii': None,
+        'source': "rokuyo",
     }
 ]
 
@@ -65,7 +71,9 @@ def run_bdfconv(map_file, output_name, bdf_file):
 
 def main():
     for font in FONTS:
-        codes = extract_codes(font['source']) if font['source'] else holiday_codes()
+        codes = (lunar_codes() if font['source'] == 'jp_ui' else
+                 rokuyo_codes() if font['source'] == 'rokuyo' else
+                 extract_codes(font['source']) if font['source'] else holiday_codes())
         map_file = f"_{font['name']}.map"
         write_map_file(map_file, codes, ascii_range=font['ascii'])
         run_bdfconv(

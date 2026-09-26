@@ -38,7 +38,7 @@ static void DrawTimeSyncTip(Adafruit_GFX* gfx, gui_data_t* data) {
     const char* title = "SYNC TIME!";
     const char* url = "https://tsl0922.github.io/EPD-nRF5";
 
-    GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
+    GFX_setFont(gfx, u8g2_font_jp_ui_medium11);
 
     int16_t fh = GFX_getFontHeight(gfx);
     int16_t box_w = GFX_getUTF8Width(gfx, url) + 20;
@@ -73,7 +73,7 @@ static uint8_t batt_cal(uint16_t voltage) {
 static void DrawBattery(Adafruit_GFX* gfx, int16_t x, int16_t y, uint8_t iw, uint16_t voltage) {
     x -= iw;
     uint8_t level = batt_cal(voltage);
-    GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
+    GFX_setFont(gfx, u8g2_font_jp_ui_medium11);
     GFX_setCursor(gfx, x - GFX_getUTF8Width(gfx, "3.2V") - 2, y + 9);
     GFX_printf(gfx, "%d.%dV", voltage / 1000, (voltage % 1000) / 100);
     GFX_fillRect(gfx, x, y, iw, 10, GFX_WHITE);
@@ -122,7 +122,7 @@ static void DrawDateHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gu
     GFX_drawFastVLine(gfx, STATUS_LEFT_X - 10, 7, HEADER_HEIGHT - 14, GFX_WHITE);
 
     GFX_setTextColor(gfx, GFX_WHITE, GFX_RED);
-    GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
+    GFX_setFont(gfx, u8g2_font_jp_ui_medium11);
     width = GFX_getUTF8Width(gfx, "0000");
     GFX_setCursor(gfx, (MONTH_BLOCK_WIDTH - width) / 2, YEAR_Y);
     GFX_printf(gfx, "%u", year);
@@ -131,7 +131,7 @@ static void DrawDateHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gu
     GFX_setCursor(gfx, (MONTH_BLOCK_WIDTH - width) / 2, MONTH_Y);
     GFX_printf(gfx, "%02u", (unsigned)(tm->tm_mon + 1));
 
-    GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
+    GFX_setFont(gfx, u8g2_font_jp_ui_medium11);
     GFX_setTextColor(gfx, GFX_WHITE, GFX_BLACK);
     GFX_setCursor(gfx, META_COL1_X, META_ROW1_Y);
     if (reiwa == 1U)
@@ -164,7 +164,7 @@ static void DrawDateHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gu
 static void DrawWeekHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, gui_data_t* data) {
     static const char WEEKDAYS[7][4] = {"日", "月", "火", "水", "木", "金", "土"};
     bool large = large_layout(data);
-    GFX_setFont(gfx, large ? u8g2_font_wqy12_t_lunar : u8g2_font_wqy9_t_lunar);
+    GFX_setFont(gfx, large ? u8g2_font_wqy12_t_lunar : u8g2_font_jp_ui_medium11);
     uint8_t w = (data->width - 2 * x) / 7;
     uint8_t h = large ? 32 : 22;
     uint8_t r = (data->width - 2 * x) % 7;
@@ -253,7 +253,7 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
         GFX_setFontMode(gfx, 1);  // transparent
         if (holiday.id != JP_HOLIDAY_NONE) {
             int16_t available = bw - 2;
-            GFX_setFont(gfx, large ? u8g2_font_wqy9_t_lunar : u8g2_font_jp_holiday_compact);
+            GFX_setFont(gfx, large ? u8g2_font_jp_ui_medium11 : u8g2_font_jp_holiday_compact);
             int16_t label_width = GFX_getUTF8Width(gfx, holiday.name);
             if (label_width > available || holiday.id == JP_HOLIDAY_ENTHRONEMENT_CEREMONY) {
                 GFX_setFont(gfx, u8g2_font_jp_holiday_compact);
@@ -308,7 +308,7 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
             jp_rokuyo_t rokuyo = jp_get_rokuyo(year, month, day);
             if (rokuyo != JP_ROKUYO_NONE) {
                 const char* name = jp_rokuyo_name(rokuyo);
-                if (!large) GFX_setFont(gfx, u8g2_font_jp_holiday_compact);
+                if (!large) GFX_setFont(gfx, u8g2_font_jp_rokuyo_readable);
                 GFX_setTextColor(gfx, GFX_BLACK, GFX_WHITE);
                 GFX_setCursor(gfx, cell_center_x - GFX_getUTF8Width(gfx, name) / 2, label_y);
                 GFX_printf(gfx, "%s", name);
@@ -377,7 +377,7 @@ static void DrawClock(Adafruit_GFX* gfx, tm_t* tm, struct Lunar_Date* Lunar, gui
     GFX_printf_styled(gfx, GFX_BLACK, GFX_WHITE, u8g2_font_wqy12_t_lunar, "日 ");
 
     GFX_setCursor(gfx, padding, 58);
-    GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
+    GFX_setFont(gfx, u8g2_font_jp_ui_medium11);
     GFX_printf(gfx, "星期%s", Lunar_DayString[tm->tm_wday]);
     GFX_setCursor(gfx, 138, 58);
     GFX_printf(gfx, "%s%s%s", Lunar_MonthLeapString[Lunar->IsLeap], Lunar_MonthString[Lunar->Month],
@@ -390,7 +390,7 @@ static void DrawClock(Adafruit_GFX* gfx, tm_t* tm, struct Lunar_Date* Lunar, gui
     int16_t sw = GFX_getUTF8Width(gfx, "25℃[1234]");
     memcpy(ssid, &data->ssid[ssid_len - 4], 4);
     GFX_setCursor(gfx, data->width - padding - sw - 2, 58);
-    GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
+    GFX_setFont(gfx, u8g2_font_jp_ui_medium11);
     GFX_printf(gfx, "%d℃[%s]", data->temperature, ssid);
 
     GFX_drawFastHLine(gfx, padding - 10, 68, data->width - 2 * (padding - 10), GFX_BLACK);

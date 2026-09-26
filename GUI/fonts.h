@@ -3,9 +3,10 @@
 
 #include "u8g2_font.h"
 
-extern const uint8_t u8g2_font_wqy9_t_lunar[] U8G2_FONT_SECTION("u8g2_font_wqy9_t_lunar");
+extern const uint8_t u8g2_font_jp_ui_medium11[] U8G2_FONT_SECTION("u8g2_font_jp_ui_medium11");
 extern const uint8_t u8g2_font_wqy12_t_lunar[] U8G2_FONT_SECTION("u8g2_font_wqy12_t_lunar");
 extern const uint8_t u8g2_font_jp_holiday_compact[] U8G2_FONT_SECTION("u8g2_font_jp_holiday_compact");
+extern const uint8_t u8g2_font_jp_rokuyo_readable[] U8G2_FONT_SECTION("u8g2_font_jp_rokuyo_readable");
 
 extern const uint8_t u8g2_font_helvB14_tn[] U8G2_FONT_SECTION("u8g2_font_helvB14_tn");
 extern const uint8_t u8g2_font_helvB18_tn[] U8G2_FONT_SECTION("u8g2_font_helvB18_tn");

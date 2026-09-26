@@ -14,7 +14,7 @@ int main(void) {
     const char* longest_name = "";
     uint16_t year;
     GFX_begin(&gfx, 400, 300, 16);
-    GFX_setFont(&gfx, u8g2_font_wqy9_t_lunar);
+    GFX_setFont(&gfx, u8g2_font_jp_ui_medium11);
     normal_height = GFX_getFontHeight(&gfx);
     printf("Normal small font metrics: ascent=%d descent=%d height=%d\n",
            GFX_getFontAscent(&gfx), GFX_getFontDescent(&gfx), normal_height);
@@ -33,7 +33,7 @@ int main(void) {
                 int normal, compact;
                 if (holiday.id == JP_HOLIDAY_NONE) continue;
                 ++holiday_count;
-                GFX_setFont(&gfx, u8g2_font_wqy9_t_lunar);
+                GFX_setFont(&gfx, u8g2_font_jp_ui_medium11);
                 normal = GFX_getUTF8Width(&gfx, holiday.name);
                 GFX_setFont(&gfx, u8g2_font_jp_holiday_compact);
                 compact = GFX_getUTF8Width(&gfx, holiday.name);
