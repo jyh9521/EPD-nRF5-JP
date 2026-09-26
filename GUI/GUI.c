@@ -10,13 +10,13 @@
 
 #define JP_SATURDAY_RED 0
 enum {
-    HEADER_HEIGHT = 52,
-    MONTH_BLOCK_WIDTH = 58,
+    HEADER_HEIGHT = 53,
+    MONTH_BLOCK_WIDTH = 59,
     META_COL1_X = 76,
     META_COL2_X = 151,
     META_ROW1_Y = 19,
     META_ROW2_Y = 40,
-    STATUS_LEFT_X = 296,
+    STATUS_LEFT_X = 320,
     STATUS_RIGHT_X = 390,
     YEAR_Y = 18,
     MONTH_Y = 43,
@@ -87,30 +87,49 @@ static uint8_t GetWeekOfYear(uint8_t year, uint8_t mon, uint8_t mday, uint8_t wd
     return jp_iso_week_number((uint16_t)year + YEAR0, (uint8_t)(mon + 1U), mday);
 }
 
+/* Narrow 3x7 status lettering keeps the full BLE device name in its fixed box. */
+static void DrawTinyStatusText(Adafruit_GFX* gfx, int16_t x, int16_t y, const char* text) {
+    static const uint16_t glyphs[] = {
+        0x2BED, 0x6BAE, 0x3923, 0x6B6E, 0x79A7, 0x79A4, 0x396B, 0x5BED, 0x7497, 0x126A,
+        0x5BAD, 0x4927, 0x5FED, 0x5FFD, 0x2B6A, 0x6BA4, 0x2B59, 0x6BAD, 0x388E, 0x7492,
+        0x5B6F, 0x5B6A, 0x5BFD, 0x5AAD, 0x5A92, 0x72A7, 0x7B6F, 0x2C97, 0x63E7, 0x62CE,
+        0x5BC9, 0x79CE, 0x39EF, 0x7292, 0x7BEF, 0x7BCE, 0x0007, 0x0002, 0x01C0,
+    };
+    static const uint8_t source_row[] = {0, 1, 1, 2, 3, 3, 4};
+    for (; *text && x + 3 <= STATUS_RIGHT_X; text++, x += 4) {
+        char c = *text;
+        uint8_t index = c >= 'A' && c <= 'Z' ? (uint8_t)(c - 'A')
+                      : c >= '0' && c <= '9' ? (uint8_t)(c - '0' + 26)
+                      : c == '_' ? 36 : c == '.' ? 37 : c == '-' ? 38 : 39;
+        uint16_t bits = index < 39 ? glyphs[index] : 0;
+        for (uint8_t row = 0; row < 7; row++)
+            for (uint8_t col = 0; col < 3; col++)
+                if (bits & (1U << (14 - source_row[row] * 3 - col)))
+                    GFX_drawPixel(gfx, x + col, y + row, GFX_WHITE);
+    }
+}
+
 static void DrawDateHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui_data_t* data) {
     uint16_t year = (uint16_t)(tm->tm_year + YEAR0);
     uint8_t reiwa = jp_reiwa_year(year, (uint8_t)(tm->tm_mon + 1U), tm->tm_mday);
-    char year_text[6], month_text[3], device_name[24];
-    int16_t width, left, i;
+    int16_t width, left;
     (void)x;
     (void)y;
 
     GFX_fillRect(gfx, 0, 0, data->width, HEADER_HEIGHT, GFX_BLACK);
     GFX_fillRect(gfx, 0, 0, MONTH_BLOCK_WIDTH, HEADER_HEIGHT, GFX_RED);
-    GFX_drawFastVLine(gfx, MONTH_BLOCK_WIDTH + 7, 4, HEADER_HEIGHT - 8, GFX_WHITE);
-    GFX_drawFastVLine(gfx, STATUS_LEFT_X - 8, 4, HEADER_HEIGHT - 8, GFX_WHITE);
+    GFX_drawFastVLine(gfx, MONTH_BLOCK_WIDTH + 7, 7, HEADER_HEIGHT - 14, GFX_WHITE);
+    GFX_drawFastVLine(gfx, STATUS_LEFT_X - 10, 7, HEADER_HEIGHT - 14, GFX_WHITE);
 
-    snprintf(year_text, sizeof(year_text), "%u", year);
-    snprintf(month_text, sizeof(month_text), "%02u", (unsigned)(tm->tm_mon + 1));
     GFX_setTextColor(gfx, GFX_WHITE, GFX_RED);
-    GFX_setFont(gfx, u8g2_font_helvB14_tn);
-    width = GFX_getUTF8Width(gfx, year_text);
+    GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
+    width = GFX_getUTF8Width(gfx, "0000");
     GFX_setCursor(gfx, (MONTH_BLOCK_WIDTH - width) / 2, YEAR_Y);
-    GFX_printf(gfx, "%s", year_text);
+    GFX_printf(gfx, "%u", year);
     GFX_setFont(gfx, u8g2_font_helvB18_tn);
-    width = GFX_getUTF8Width(gfx, month_text);
+    width = GFX_getUTF8Width(gfx, "00");
     GFX_setCursor(gfx, (MONTH_BLOCK_WIDTH - width) / 2, MONTH_Y);
-    GFX_printf(gfx, "%s", month_text);
+    GFX_printf(gfx, "%02u", (unsigned)(tm->tm_mon + 1));
 
     GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
     GFX_setTextColor(gfx, GFX_WHITE, GFX_BLACK);
@@ -127,42 +146,40 @@ static void DrawDateHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gu
     GFX_printf(gfx, "第%d週", GetWeekOfYear(tm->tm_year, tm->tm_mon, tm->tm_mday, tm->tm_wday));
 
     /* Keep variable device names within the fixed status block. */
-    snprintf(device_name, sizeof(device_name), "%s", data->ssid);
-    while (GFX_getUTF8Width(gfx, device_name) > STATUS_RIGHT_X - STATUS_LEFT_X - 4) {
-        i = (int16_t)strlen(device_name);
-        if (i == 0) break;
-        device_name[i - 1] = '\0';
-    }
-    width = GFX_getUTF8Width(gfx, device_name);
-    GFX_setCursor(gfx, STATUS_LEFT_X + (STATUS_RIGHT_X - STATUS_LEFT_X - width) / 2, META_ROW1_Y);
-    GFX_printf(gfx, "%s", device_name);
-    GFX_drawFastHLine(gfx, STATUS_LEFT_X, 27, STATUS_RIGHT_X - STATUS_LEFT_X, GFX_WHITE);
-    GFX_setCursor(gfx, STATUS_LEFT_X + 2, META_ROW2_Y);
+    width = (int16_t)strlen(data->ssid);
+    if (width > 17) width = 17;
+    DrawTinyStatusText(gfx, STATUS_LEFT_X + (STATUS_RIGHT_X - STATUS_LEFT_X - width * 4) / 2, 8, data->ssid);
+    GFX_drawFastHLine(gfx, STATUS_LEFT_X, 22, STATUS_RIGHT_X - STATUS_LEFT_X, GFX_WHITE);
+    GFX_setCursor(gfx, STATUS_LEFT_X, META_ROW2_Y + 2);
     GFX_printf(gfx, "%u%%", batt_cal(data->voltage));
-    left = STATUS_LEFT_X + 38;
-    GFX_drawRect(gfx, left, 32, 19, 10, GFX_WHITE);
-    GFX_fillRect(gfx, left + 19, 35, 2, 4, GFX_WHITE);
-    GFX_fillRect(gfx, left + 2, 34, 15 * batt_cal(data->voltage) / 100, 6, GFX_WHITE);
-    GFX_setCursor(gfx, STATUS_LEFT_X + 63, META_ROW2_Y);
-    GFX_printf(gfx, "%u.%uV", data->voltage / 1000, (data->voltage % 1000) / 100);
+    left = STATUS_LEFT_X + 29;
+    GFX_drawRect(gfx, left, 31, 18, 10, GFX_WHITE);
+    GFX_fillRect(gfx, left + 18, 34, 2, 4, GFX_WHITE);
+    GFX_fillRect(gfx, left + 2, 33, 14 * batt_cal(data->voltage) / 100, 6, GFX_WHITE);
+    char voltage_text[5] = {(char)('0' + data->voltage / 1000), '.',
+                            (char)('0' + (data->voltage % 1000) / 100), 'V', '\0'};
+    DrawTinyStatusText(gfx, STATUS_LEFT_X + 54, 33, voltage_text);
 }
 
 static void DrawWeekHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, gui_data_t* data) {
     static const char WEEKDAYS[7][4] = {"日", "月", "火", "水", "木", "金", "土"};
-    GFX_setFont(gfx, large_layout(data) ? u8g2_font_wqy12_t_lunar : u8g2_font_wqy9_t_lunar);
+    bool large = large_layout(data);
+    GFX_setFont(gfx, large ? u8g2_font_wqy12_t_lunar : u8g2_font_wqy9_t_lunar);
     uint8_t w = (data->width - 2 * x) / 7;
-    uint8_t h = large_layout(data) ? 32 : 12;
+    uint8_t h = large ? 32 : 22;
     uint8_t r = (data->width - 2 * x) % 7;
     uint8_t fh = (h - GFX_getFontHeight(gfx)) / 2 + GFX_getFontAscent(gfx) + 1;
     int16_t cw = GFX_getUTF8Width(gfx, WEEKDAYS[0]);
     for (int i = 0; i < 7; i++) {
         uint8_t day = (data->week_start + i) % 7;
-        uint16_t bg = (day == 0 || (JP_SATURDAY_RED && day == 6)) ? GFX_RED : GFX_BLACK;
-        GFX_fillRect(gfx, x + i * w, y, i == 6 ? (w + r) : w, h, bg);
-        GFX_setTextColor(gfx, GFX_WHITE, bg);
+        uint16_t bg = large ? ((day == 0 || (JP_SATURDAY_RED && day == 6)) ? GFX_RED : GFX_BLACK) : GFX_WHITE;
+        uint16_t fg = large ? GFX_WHITE : ((day == 0) ? GFX_RED : GFX_BLACK);
+        if (large) GFX_fillRect(gfx, x + i * w, y, i == 6 ? (w + r) : w, h, bg);
+        GFX_setTextColor(gfx, fg, bg);
         GFX_setCursor(gfx, x + (w - cw) / 2 + i * w, y + fh);
         GFX_printf(gfx, "%s", WEEKDAYS[day]);
     }
+    if (!large) GFX_drawFastHLine(gfx, x + 1, y + h - 1, data->width - 2 * x - 2, GFX_BLACK);
 }
 
 static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui_data_t* data) {
@@ -173,9 +190,9 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
     uint8_t monthMaxDays = jp_days_in_month(year, month);
     uint8_t monthDayRows = jp_calendar_rows(year, month, data->week_start);
 
-    int16_t bw = (data->width - x - 10) / 7;
-    int16_t bh = (data->height - y - 10) / monthDayRows;
     bool large = large_layout(data);
+    int16_t bw = large ? (data->width - x - 10) / 7 : (data->width - 2 * x) / 7;
+    int16_t bh = (data->height - y - (large ? 10 : 9)) / monthDayRows;
 
     if (large) {
         for (uint8_t i = 1; i < monthDayRows; i++)
@@ -197,17 +214,26 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
         if (monthDayRows > 5) cr -= 1;  // reduce circle height for 6 week rows
         int16_t cell_left = x + displayWeek * bw;
         int16_t cell_center_x = cell_left + bw / 2;
+        int16_t row_top = y + (i + adjustedFirstDay) / 7 * bh;
         int16_t bx = cell_center_x - cr;
-        int16_t by = y + (bh - 2 * cr) / 2 + (i + adjustedFirstDay) / 7 * bh + 3;
+        int16_t by = row_top + (bh - 2 * cr) / 2 + 3;
 
         if (day == tm->tm_mday) {
-            /* A holiday also needs a red name below; keep its today circle
-             * around the date instead of filling that label's entire slot. */
-            GFX_fillCircle(gfx, bx + cr, by + cr - 3,
-                           holiday.id == JP_HOLIDAY_NONE ? 2 * cr : cr + 4, GFX_RED);
+            if (large) {
+                GFX_fillCircle(gfx, bx + cr, by + cr - 3,
+                               holiday.id == JP_HOLIDAY_NONE ? 2 * cr : cr + 4, GFX_RED);
+            } else {
+                GFX_fillRect(gfx, cell_left + 5, row_top - 1, bw - 9, bh - 2, GFX_RED);
+                GFX_drawPixel(gfx, cell_left + 5, row_top - 1, GFX_WHITE);
+                GFX_drawPixel(gfx, cell_left + bw - 5, row_top - 1, GFX_WHITE);
+                GFX_drawPixel(gfx, cell_left + 5, row_top + bh - 4, GFX_WHITE);
+                GFX_drawPixel(gfx, cell_left + bw - 5, row_top + bh - 4, GFX_WHITE);
+            }
             GFX_setTextColor(gfx, GFX_WHITE, GFX_RED);
         } else {
             GFX_setTextColor(gfx, red_day ? GFX_RED : GFX_BLACK, GFX_WHITE);
+            if (!large && holiday.id != JP_HOLIDAY_NONE)
+                GFX_fillRect(gfx, cell_left + 4, row_top, 4, bh - 4, GFX_RED);
         }
 
         char buf[10] = {0};
@@ -216,38 +242,41 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
         int16_t date_width = GFX_getUTF8Width(gfx, buf);
         int16_t date_ascent = GFX_getFontAscent(gfx);
         int16_t date_x = cell_center_x - date_width / 2;
-        int16_t date_y = by - (cr - GFX_getFontHeight(gfx)) - 1;
+        int16_t date_y = large ? by - (cr - GFX_getFontHeight(gfx)) - 1 : row_top + 23;
         GFX_setCursor(gfx, date_x, date_y);
         GFX_printf(gfx, "%s", buf);
 
-        GFX_setFont(gfx, large ? u8g2_font_wqy12_t_lunar : u8g2_font_wqy9_t_lunar);
-        int16_t label_y = date_y + GFX_getFontHeight(gfx) + (large ? 5 : 3);
+        GFX_setFont(gfx, large ? u8g2_font_wqy12_t_lunar : u8g2_font_jp_holiday_compact);
+        int16_t label_y = large ? date_y + GFX_getFontHeight(gfx) + 5 : row_top + 38;
         GFX_setFontMode(gfx, 1);  // transparent
         if (holiday.id != JP_HOLIDAY_NONE) {
             int16_t available = bw - 2;
-            GFX_setFont(gfx, u8g2_font_wqy9_t_lunar);
+            GFX_setFont(gfx, large ? u8g2_font_wqy9_t_lunar : u8g2_font_jp_holiday_compact);
             int16_t label_width = GFX_getUTF8Width(gfx, holiday.name);
             if (label_width > available || holiday.id == JP_HOLIDAY_ENTHRONEMENT_CEREMONY) {
                 GFX_setFont(gfx, u8g2_font_jp_holiday_compact);
                 label_width = GFX_getUTF8Width(gfx, holiday.name);
             }
-            GFX_setTextColor(gfx, GFX_RED, GFX_WHITE);
+            GFX_setTextColor(gfx, day == tm->tm_mday && !large ? GFX_WHITE : GFX_RED,
+                             day == tm->tm_mday && !large ? GFX_RED : GFX_WHITE);
             if (holiday.id == JP_HOLIDAY_ENTHRONEMENT_CEREMONY) {
                 /* The 2019 legal name is 13 glyphs: keep it complete on two lines. */
                 const char* first = "即位礼正殿の儀";
                 const char* second = "の行われる日";
                 int16_t first_width = GFX_getUTF8Width(gfx, first);
                 int16_t second_width = GFX_getUTF8Width(gfx, second);
-                if (day == tm->tm_mday)
+                if (day == tm->tm_mday) {
                     GFX_fillRect(gfx, cell_center_x - available / 2 - 1,
                                  label_y - GFX_getFontAscent(gfx) - 1, available + 2,
                                  2 * GFX_getFontHeight(gfx) + 2, GFX_WHITE);
+                    GFX_setTextColor(gfx, GFX_RED, GFX_WHITE);
+                }
                 GFX_setCursor(gfx, cell_center_x - first_width / 2, label_y);
                 GFX_printf(gfx, "%s", first);
                 GFX_setCursor(gfx, cell_center_x - second_width / 2, label_y + GFX_getFontHeight(gfx));
                 GFX_printf(gfx, "%s", second);
             } else {
-                if (day == tm->tm_mday)
+                if (day == tm->tm_mday && large)
                     GFX_fillRect(gfx, cell_center_x - label_width / 2 - 1,
                                  label_y - GFX_getFontAscent(gfx) - 1, label_width + 2,
                                  GFX_getFontHeight(gfx) + 2, GFX_WHITE);
@@ -256,31 +285,42 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
             }
             GFX_setFont(gfx, u8g2_font_jp_holiday_compact);
             int16_t badge_width = GFX_getUTF8Width(gfx, "休");
-            int16_t badge_top = date_y - date_ascent - 3;
-            if (day == tm->tm_mday && badge_top > by - cr - 5)
+            int16_t badge_top = large ? date_y - date_ascent - 3 : row_top + 3;
+            if (large && day == tm->tm_mday && badge_top > by - cr - 5)
                 badge_top = by - cr - 5;
-            if (day == tm->tm_mday)
+            if (large && day == tm->tm_mday)
                 GFX_fillRect(gfx, date_x + date_width, badge_top - 1,
                              badge_width + 2, GFX_getFontHeight(gfx) + 2, GFX_WHITE);
-            GFX_setCursor(gfx, date_x + date_width + 1, badge_top + GFX_getFontAscent(gfx));
+            if (!large) {
+                if (day == tm->tm_mday)
+                    GFX_drawRect(gfx, date_x + date_width + 1, badge_top,
+                                 badge_width + 3, GFX_getFontHeight(gfx) + 2, GFX_WHITE);
+                else
+                    GFX_fillRect(gfx, date_x + date_width + 1, badge_top,
+                                 badge_width + 3, GFX_getFontHeight(gfx) + 2, GFX_RED);
+                GFX_setTextColor(gfx, GFX_WHITE, GFX_RED);
+            }
+            GFX_setCursor(gfx, date_x + date_width + 2, badge_top + GFX_getFontAscent(gfx) + (large ? 0 : 1));
             GFX_printf(gfx, "休");
         } else {
             jp_rokuyo_t rokuyo = jp_get_rokuyo(year, month, day);
             if (rokuyo != JP_ROKUYO_NONE) {
                 const char* name = jp_rokuyo_name(rokuyo);
+                if (!large) GFX_setFont(gfx, u8g2_font_jp_holiday_compact);
                 GFX_setTextColor(gfx, GFX_BLACK, GFX_WHITE);
                 GFX_setCursor(gfx, cell_center_x - GFX_getUTF8Width(gfx, name) / 2, label_y);
                 GFX_printf(gfx, "%s", name);
             }
         }
     }
+    if (!large) GFX_drawFastHLine(gfx, x + 1, data->height - 5, data->width - 2 * x - 2, GFX_BLACK);
 }
 
 static void DrawCalendar(Adafruit_GFX* gfx, tm_t* tm, gui_data_t* data) {
     bool large = large_layout(data);
     DrawDateHeader(gfx, 10, large ? 38 : 28, tm, data);
-    DrawWeekHeader(gfx, 10, large ? 52 : HEADER_HEIGHT, data);
-    DrawMonthDays(gfx, 10, large ? 84 : 64, tm, data);
+    DrawWeekHeader(gfx, large ? 10 : 4, large ? 52 : HEADER_HEIGHT, data);
+    DrawMonthDays(gfx, large ? 10 : 4, large ? 84 : 76, tm, data);
 }
 
 // clang-format off

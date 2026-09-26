@@ -18,7 +18,7 @@ NARROW = {ord(char) for char in "の即位礼正殿儀"}
 def holiday_codes():
     source = HOLIDAYS.read_text(encoding="utf-8")
     names = source.split("HOLIDAY_NAMES[] = {")[1].split("};", 1)[0]
-    text = "".join(re.findall(r'"([^"]*)"', names)) + "体育の日休"
+    text = "".join(re.findall(r'"([^"]*)"', names)) + "体育の日休先勝友引先負仏滅大安赤口"
     # bdfconv derives ascent_A/descent_g from these reference glyphs; without
     # them GFX_getFontHeight() becomes zero and two-line labels overlap.
     return sorted({ord(char) for char in text if ord(char) > 127} | {ord("A"), ord("g")})
