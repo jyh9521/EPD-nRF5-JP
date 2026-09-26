@@ -56,5 +56,13 @@ signed v1.10 package or an SWD backup first. If an OTA fails but the bootloader
 still advertises, send the verified known-good package through Nordic DFU.
 If only SWD recovery remains, restore the device-specific SoftDevice,
 bootloader, settings and application backup with a debugger, then verify BLE,
-display refresh and the persisted configuration. No physical upgrade or
-recovery was performed while producing these artifacts.
+display refresh and the persisted configuration.
+
+On 2026-09-26, one nRF52811 / 4.2-inch UC8176 three-color device successfully
+accepted an application DFU package and reported `0x1c (JP)` over BLE. Its screen
+did not refresh initially because the model configuration read back as `02`
+(SSD1619 three-color), whereas the pre-DFU device had `03` (UC8176 three-color).
+On that device, sending `0103`, reading back the configuration with `22`, and
+then requesting calendar mode restored the Japanese display. This result is
+specific to that display model; a different model needs its own driver value.
+Persistence across a further device reset remains to be verified.
