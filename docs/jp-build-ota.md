@@ -33,7 +33,7 @@ The original HEAD measurement used the original Keil-sized linker span
 
 - `EPD-nRF52811-JP.hex`: application-only Intel HEX at `0x19000`.
 - `EPD-nRF52811-JP.bin`: application-only raw bytes.
-- `EPD-nRF52811-JP-ota.zip`: signed application DFU archive, version `0x1b`,
+- `EPD-nRF52811-JP-ota.zip`: signed application DFU archive, currently version `0x1c`,
   hardware version `52`, S112 requirement `0x126`.
 - `EPD-nRF52811-JP-manifest.json`: size and SHA-256 checksums.
 - `EPD-nRF52811-JP-full.hex`: merged development image containing the

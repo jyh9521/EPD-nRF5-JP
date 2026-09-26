@@ -1,90 +1,68 @@
-"""Make a narrow, full-height BDF subset for official holiday labels.
+"""Regenerate the checked-in 1-bit Japanese UI subset from Noto Sans JP.
 
-Glyphs come from the existing WenQuanYi 9pt source. Only horizontal bitmap
-columns are compacted; the original 11-pixel Kanji height is retained.
+The generated BDF is committed so ordinary firmware builds need no TTF or Pillow.
+Usage: python build_compact_font.py PATH_TO_NotoSansJP-VF.ttf
 """
 
 from pathlib import Path
 import re
+import sys
 
-
-SOURCE = Path("fonts/wenquanyi_9ptb.bdf")
-TARGET = Path("_jp_holiday_compact.bdf")
-HOLIDAYS = Path("../GUI/JapaneseCalendar.c")
+TARGET = Path('fonts/epd_jp_ui_medium.bdf')
+HOLIDAYS = Path('../GUI/JapaneseCalendar.c')
+NARROW = {ord(char) for char in 'の即位礼正殿儀'}
 ADVANCE = 8
-NARROW = {ord(char) for char in "の即位礼正殿儀"}
+HEIGHT = 10
+THRESHOLD = 140
 
 
 def holiday_codes():
-    source = HOLIDAYS.read_text(encoding="utf-8")
-    names = source.split("HOLIDAY_NAMES[] = {")[1].split("};", 1)[0]
-    text = "".join(re.findall(r'"([^"]*)"', names)) + "体育の日休先勝友引先負仏滅大安赤口"
-    # bdfconv derives ascent_A/descent_g from these reference glyphs; without
-    # them GFX_getFontHeight() becomes zero and two-line labels overlap.
-    return sorted({ord(char) for char in text if ord(char) > 127} | {ord("A"), ord("g")})
+    source = HOLIDAYS.read_text(encoding='utf-8')
+    names = source.split('HOLIDAY_NAMES[] = {')[1].split('};', 1)[0]
+    text = ''.join(re.findall(r'"([^"]*)"', names)) + '体育の日休先勝友引先負仏滅大安赤口'
+    return sorted({ord(char) for char in text if ord(char) > 127} | {ord('A'), ord('g')})
 
 
-def build_compact_bdf():
-    wanted = set(holiday_codes())
-    lines = SOURCE.read_text(encoding="ascii", errors="ignore").splitlines()
-    glyphs = []
-    index = 0
-    while index < len(lines):
-        if not lines[index].startswith("STARTCHAR "):
-            index += 1
-            continue
-        end = lines.index("ENDCHAR", index) + 1
-        block = lines[index:end]
-        encoding = next((int(row.split()[1]) for row in block if row.startswith("ENCODING ")), -1)
-        if encoding in wanted:
-            advance = 7 if encoding in NARROW else ADVANCE
-            bbx = next(row for row in block if row.startswith("BBX "))
-            width, height, x_offset, y_offset = map(int, bbx.split()[1:])
-            bitmap_index = block.index("BITMAP")
-            bitmap = block[bitmap_index + 1 : bitmap_index + 1 + height]
-            columns = []
-            for row in bitmap:
-                bits = int(row, 16) >> (len(row) * 4 - width)
-                columns.append([bool(bits & (1 << (width - 1 - col))) for col in range(width)])
-            output = []
-            for row in columns:
-                packed = 0
-                for dest in range(advance):
-                    left = dest * 13 // advance
-                    right = (dest + 1) * 13 // advance
-                    on = any(row[col - x_offset] for col in range(left, right)
-                             if x_offset <= col < x_offset + width)
-                    if on:
-                        packed |= 1 << (7 - dest)
-                output.append(f"{packed:02X}")
-            glyphs += [
-                f"STARTCHAR jp-{encoding:04x}",
-                f"ENCODING {encoding}",
-                f"SWIDTH {advance * 80} 0",
-                f"DWIDTH {advance} 0",
-                f"BBX {advance} {height} 0 {y_offset}",
-                "BITMAP",
-                *output,
-                "ENDCHAR",
-            ]
-            wanted.remove(encoding)
-        index = end
-    if wanted:
-        raise ValueError(f"missing WenQuanYi glyphs: {sorted(wanted)}")
-    header = [
-        "STARTFONT 2.1",
-        "FONT -jp-holiday-compact-medium-r-normal--12-120-75-75-p-70-iso10646-1",
-        "SIZE 12 75 75",
-        "FONTBOUNDINGBOX 8 17 0 -2",
-        "STARTPROPERTIES 2",
-        "FONT_ASCENT 12",
-        "FONT_DESCENT 3",
-        "ENDPROPERTIES",
-        f"CHARS {len(holiday_codes())}",
+def build_compact_bdf(font_path: Path, target: Path = TARGET):
+    from PIL import Image, ImageFont
+
+    font = ImageFont.truetype(str(font_path), 56)
+    font.set_variation_by_name('Medium')
+    codes = holiday_codes()
+    lines = [
+        'STARTFONT 2.1',
+        'FONT -epd-jp-ui-medium-r-normal--10-100-75-75-p-80-iso10646-1',
+        'SIZE 10 75 75', 'FONTBOUNDINGBOX 8 10 0 -1',
+        'STARTPROPERTIES 2', 'FONT_ASCENT 9', 'FONT_DESCENT 2',
+        'ENDPROPERTIES', f'CHARS {len(codes)}',
     ]
-    TARGET.write_text("\n".join(header + glyphs + ["ENDFONT", ""]), encoding="ascii")
-    return holiday_codes()
+    for code in codes:
+        char = chr(code)
+        advance = 7 if code in NARROW else ADVANCE
+        height = 8 if char in ('A', 'g') else HEIGHT
+        y_offset = 0 if char == 'A' else -2 if char == 'g' else -1
+        mask = font.getmask(char, mode='L')
+        bitmap = Image.frombytes('L', mask.size, bytes(mask))
+        bounds = bitmap.getbbox()
+        if not bounds:
+            raise ValueError(f'Missing glyph U+{code:04X}')
+        bitmap = bitmap.crop(bounds).resize((advance, height), Image.Resampling.LANCZOS)
+        rows = []
+        for y in range(height):
+            bits = sum(1 << (7 - x) for x in range(advance)
+                       if bitmap.getpixel((x, y)) >= THRESHOLD)
+            rows.append(f'{bits:02X}')
+        lines += [
+            f'STARTCHAR epd-{code:04X}', f'ENCODING {code}',
+            f'SWIDTH {advance * 80} 0', f'DWIDTH {advance} 0',
+            f'BBX {advance} {height} 0 {y_offset}', 'BITMAP', *rows, 'ENDCHAR',
+        ]
+    lines += ['ENDFONT', '']
+    target.write_text('\n'.join(lines), encoding='ascii')
+    return codes
 
 
-if __name__ == "__main__":
-    print(f"compact glyphs={len(build_compact_bdf())}")
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        raise SystemExit('usage: python build_compact_font.py PATH_TO_NotoSansJP-VF.ttf')
+    print(f'Generated {TARGET} with {len(build_compact_bdf(Path(sys.argv[1])))} glyphs')

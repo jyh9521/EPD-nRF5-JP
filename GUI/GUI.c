@@ -150,7 +150,7 @@ static void DrawDateHeader(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gu
     if (width > 17) width = 17;
     DrawTinyStatusText(gfx, STATUS_LEFT_X + (STATUS_RIGHT_X - STATUS_LEFT_X - width * 4) / 2, 8, data->ssid);
     GFX_drawFastHLine(gfx, STATUS_LEFT_X, 22, STATUS_RIGHT_X - STATUS_LEFT_X, GFX_WHITE);
-    GFX_setCursor(gfx, STATUS_LEFT_X, META_ROW2_Y + 2);
+    GFX_setCursor(gfx, STATUS_LEFT_X, META_ROW2_Y);
     GFX_printf(gfx, "%u%%", batt_cal(data->voltage));
     left = STATUS_LEFT_X + 29;
     GFX_drawRect(gfx, left, 31, 18, 10, GFX_WHITE);
@@ -223,11 +223,13 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
                 GFX_fillCircle(gfx, bx + cr, by + cr - 3,
                                holiday.id == JP_HOLIDAY_NONE ? 2 * cr : cr + 4, GFX_RED);
             } else {
-                GFX_fillRect(gfx, cell_left + 5, row_top - 1, bw - 9, bh - 2, GFX_RED);
-                GFX_drawPixel(gfx, cell_left + 5, row_top - 1, GFX_WHITE);
-                GFX_drawPixel(gfx, cell_left + bw - 5, row_top - 1, GFX_WHITE);
-                GFX_drawPixel(gfx, cell_left + 5, row_top + bh - 4, GFX_WHITE);
-                GFX_drawPixel(gfx, cell_left + bw - 5, row_top + bh - 4, GFX_WHITE);
+                const int16_t card_x = cell_left + 5;
+                const int16_t card_y = row_top - 1;
+                const int16_t card_w = bw - 9;
+                const int16_t card_h = bh - 2;
+                GFX_fillRect(gfx, card_x + 2, card_y, card_w - 4, card_h, GFX_RED);
+                GFX_fillRect(gfx, card_x + 1, card_y + 1, card_w - 2, card_h - 2, GFX_RED);
+                GFX_fillRect(gfx, card_x, card_y + 2, card_w, card_h - 4, GFX_RED);
             }
             GFX_setTextColor(gfx, GFX_WHITE, GFX_RED);
         } else {
