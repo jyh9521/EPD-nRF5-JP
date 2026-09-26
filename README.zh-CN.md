@@ -10,21 +10,20 @@
 - 设备端保存“周日开始／周一开始”，Web 页面连接时读取当前值并可修改。
 - 支持 nRF52811 命令行构建与应用固件 DFU ZIP 打包。
 
-**实机验证范围：**2026 年 9 月，在一台 nRF52811、4.2 英寸 400×300、UC8176 三色屏设备上，确认 DFU 后运行 `0x1c (JP)`、BLE 可重连，并成功显示日文月历。其他设备型号及“周起始设置重启后保持”尚未通过该实机验证。
+## 当前使用的墨水屏设备
+
+本项目使用的设备为 **nRF52811** 主控、**4.2 英寸 400×300 像素黑／白／红三色墨水屏**，屏幕驱动芯片为 **UC8176**，固件中的屏幕型号 ID 为 **`03`**。`0x1d` 及之后版本的 nRF52811 初始配置按这套硬件设置；如果设备已经保存了屏幕型号配置，则优先使用设备内的值。
 
 ## 打开项目自己的 Web 控制页面
 
-仓库的 `html/` 是正式控制页面。GitHub Pages 已启用，`main` 分支的 `html/` 已部署成功。不过 GitHub 目前将项目地址重定向到账号配置的自定义域名 `blog.blfy.top`，该域名暂时无法解析；在公开地址可用前请使用本地页面。
+仓库内的 [`html/`](html/) 是项目自己的 Web Bluetooth 控制页面。请在自己的电脑上启动本地服务器（Windows CMD）：
 
-- 预定地址：<https://jyh9521.github.io/EPD-nRF5-JP/>（当前会重定向到上述域名）
-- 本地打开（CMD）：
+```cmd
+cd /d C:\path\to\EPD-nRF5-JP
+python -m http.server 8000 --directory html
+```
 
-  ```cmd
-  cd /d C:\path\to\EPD-nRF5-JP
-  python -m http.server 8000 --directory html
-  ```
-
-在 Chrome 或 Edge 打开 <http://localhost:8000/>。连接设备后选择“日历模式”会同步时间并请求刷新。墨水屏会保留旧画面，因此判断 OTA 是否生效应先读网页日志中的固件版本。Web 控制页面**没有 OTA 上传功能**。
+在 Chrome 或 Edge 打开 <http://localhost:8000/>，再通过蓝牙连接设备。对于 `0x1d` 及之后的 JP 固件，页面会读取设备配置；设备处于日历或时钟模式、且时间偏差超过 60 秒时，会自动校时并刷新。需要时也可以点击“日历模式”，手动同步时间并重绘。Web 控制页面**不负责上传 OTA 固件**。
 
 ## 构建固件
 
@@ -36,18 +35,21 @@ python tools\build_nrf52811.py --toolchain C:\path\to\gcc-arm-none-eabi-10.3-202
 python tools\package_nrf52811_ota.py build\nrf52811\EPD-nRF52811-JP.hex
 ```
 
-`build/nrf52811/EPD-nRF52811-JP-ota.zip` 是**应用固件 OTA 包**；`-full.hex` 是包含 SoftDevice 和 Bootloader 的开发用镜像，不能作为手机 OTA ZIP。刷机前应确认设备 Bootloader 的签名公钥与固件包匹配，并保留恢复途径；只看到 `v1.10-nrf52811` 版本名不足以证明兼容。
+`build/nrf52811/EPD-nRF52811-JP-ota.zip` 是**应用固件 OTA 包**；`-full.hex` 是包含 SoftDevice 和 Bootloader 的开发用镜像，不能作为手机 OTA ZIP。
 
-### 刷机后屏幕不刷新
+## 使用 Android 手机刷机
 
-先确认网页日志显示 `0x1c (JP)`，再比较刷机前后的设备配置。实机上曾出现屏幕型号从 `03`（UC8176 三色）变成 `02`（SSD1619 三色），导致蓝牙正常但屏幕不刷新。在**同一型号的 UC8176 三色屏**上，开发模式发送 `0103`，再发送 `22`，确认配置中型号恢复为 `03`，随后点击“日历模式”同步时间并刷新。不同屏幕不能照抄 `0103`；应使用其原来的型号和引脚配置。
+1. 按上面的命令构建固件，把 `build/nrf52811/EPD-nRF52811-JP-ota.zip` 复制到 Android 手机，保持 ZIP 原样，不要解压。
+2. 安装 Nordic Semiconductor 的 [nRF Device Firmware Update（Android）](https://play.google.com/store/apps/details?id=no.nordicsemi.android.dfu)，打开手机蓝牙。
+3. 先断开网页等程序与墨水屏的蓝牙连接；在应用中选择目标设备，再选取复制到手机的 `-ota.zip`，开始 DFU。
+4. 等应用显示更新完成、设备重新启动后，用本地 Web 控制页面连接，确认固件版本及屏幕型号 `03`。
 
-`91` 是软件复位命令；蓝牙可能在写入确认之前断开，使网页显示“写入失败”。重新连接并读取版本、配置判断是否已复位。`99` 会清除配置，不要把它当作重启命令。
+手机 OTA 应选择**应用固件 `-ota.zip`**，不要选择 `-full.hex`。设备 Bootloader 的签名公钥及 SoftDevice 必须与 DFU 包匹配。
 
 ## 协议与测试
 
 固件保留原有 BLE 命令和 GATT UUID。`0x21 0/1` 保存周起始，`0x22` 读取设备配置；Web 页面以设备配置为准，不以浏览器 localStorage 为准。更多信息见[日文 README](README.md)。
 
-可用 `python tests/test_pages_assets.py` 检查 Pages 静态资源；日历规则测试需要 C 编译器和 `make test`。
+可用 `python tests/test_pages_assets.py` 检查 Web UI 静态资源；日历规则测试需要 C 编译器和 `make test`。
 
 许可证为 [GPL-3.0](LICENSE)。感谢原项目及其引用的开源项目。
