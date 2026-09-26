@@ -14,9 +14,9 @@
 
 ## 打开项目自己的 Web 控制页面
 
-仓库的 `html/` 是正式控制页面。GitHub Pages 工作流已配置为发布 `main` 分支的 `html/`；还需在 GitHub 仓库设置中启用 Pages。
+仓库的 `html/` 是正式控制页面。GitHub Pages 已启用，`main` 分支的 `html/` 已部署成功。不过 GitHub 目前将项目地址重定向到账号配置的自定义域名 `blog.blfy.top`，该域名暂时无法解析；在公开地址可用前请使用本地页面。
 
-- 预定地址：<https://jyh9521.github.io/EPD-nRF5-JP/>
+- 预定地址：<https://jyh9521.github.io/EPD-nRF5-JP/>（当前会重定向到上述域名）
 - 本地打开（CMD）：
 
   ```cmd

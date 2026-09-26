@@ -20,9 +20,9 @@
 
 ## Web コントローラー
 
-正式な Web UI はこのリポジトリの [`html/`](html/) です。外部サイトへの依存はありません。GitHub Pages 用ワークフローは `main` の `html/` を配信する設定ですが、GitHub 側で Pages の公開設定も必要です。
+正式な Web UI はこのリポジトリの [`html/`](html/) です。外部サイトへの依存はありません。GitHub Pages 用ワークフローは `main` の `html/` を配信し、デプロイは成功しています。ただし現時点ではアカウント側のカスタムドメイン `blog.blfy.top` に転送され、そのドメインを解決できないため、公開 URL は利用できません。利用可能になるまでローカル版を使ってください。
 
-- 公開先（Pages 設定後）：<https://jyh9521.github.io/EPD-nRF5-JP/>
+- 予定している公開先：<https://jyh9521.github.io/EPD-nRF5-JP/>（現在は上記ドメインへ転送）
 - ローカルで開く場合（Windows CMD）：
 
   ```cmd
