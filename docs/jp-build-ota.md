@@ -33,7 +33,7 @@ The original HEAD measurement used the original Keil-sized linker span
 
 - `EPD-nRF52811-JP.hex`: application-only Intel HEX at `0x19000`.
 - `EPD-nRF52811-JP.bin`: application-only raw bytes.
-- `EPD-nRF52811-JP-ota.zip`: signed application DFU archive, currently version `0x1c`,
+- `EPD-nRF52811-JP-ota.zip`: signed application DFU archive, currently version `0x1d`,
   hardware version `52`, S112 requirement `0x126`.
 - `EPD-nRF52811-JP-manifest.json`: size and SHA-256 checksums.
 - `EPD-nRF52811-JP-full.hex`: merged development image containing the
@@ -66,3 +66,10 @@ On that device, sending `0103`, reading back the configuration with `22`, and
 then requesting calendar mode restored the Japanese display. This result is
 specific to that display model; a different model needs its own driver value.
 Persistence across a further device reset remains to be verified.
+
+Version `0x1d` changes the fresh nRF52811 default model from `02` to the
+confirmed UC8176 three-colour model `03`. An existing saved model value still
+takes priority. The bundled Web controller already sends `01` and `22` during
+connection; for `0x1d` and later it also corrects clock drift over 60 seconds
+in calendar/clock mode by sending the existing `20` command, which refreshes
+the display. Picture mode and older firmware retain their previous behavior.

@@ -5,6 +5,10 @@ let canvas, ctx, textDecoder;
 let paintManager, cropManager;
 let rleSupport;
 let deviceWeekStart = null;
+let deviceDisplayMode = null;
+let remoteClockSeconds = null;
+let connectHandshakeComplete = false;
+let autoSyncDone = false;
 let awaitingConfig = false;
 let weekStatusKey = 'week_initial';
 let statusRenderer = null;
@@ -84,6 +88,10 @@ function resetVariables() {
   msgIndex = 0;
   rleSupport = false;
   deviceWeekStart = null;
+  deviceDisplayMode = null;
+  remoteClockSeconds = null;
+  connectHandshakeComplete = false;
+  autoSyncDone = false;
   awaitingConfig = false;
   document.getElementById("weekstart").value = "0";
   weekStatusKey = 'week_initial';
@@ -167,12 +175,9 @@ async function setDriver() {
   await write(EpdCmd.INIT, document.getElementById("epddriver").value);
 }
 
-async function syncTime(mode) {
-  if (mode === 2) {
-    if (!confirm(t('提醒：时钟模式目前使用全刷实现，此功能目前多用于修复老化屏残影问题，不建议长期开启，是否继续？'))) return;
-  }
+function timePayload(mode) {
   const timestamp = new Date().getTime() / 1000;
-  const data = new Uint8Array([
+  return new Uint8Array([
     (timestamp >> 24) & 0xFF,
     (timestamp >> 16) & 0xFF,
     (timestamp >> 8) & 0xFF,
@@ -180,7 +185,32 @@ async function syncTime(mode) {
     -(new Date().getTimezoneOffset() / 60),
     mode
   ]);
-  if (await write(EpdCmd.SET_TIME, data)) {
+}
+
+function shouldAutoSyncClock(version, mode, remoteSeconds, nowSeconds, timezoneOffsetMinutes) {
+  if (version < 0x1d || (mode !== 1 && mode !== 2) || !Number.isFinite(remoteSeconds)) return false;
+  const expectedDeviceSeconds = nowSeconds - timezoneOffsetMinutes * 60;
+  return Math.abs(remoteSeconds - expectedDeviceSeconds) > 60;
+}
+
+async function maybeSyncConnectedTime() {
+  if (!connectHandshakeComplete || autoSyncDone || !gattServer?.connected ||
+      !shouldAutoSyncClock(appVersion, deviceDisplayMode, remoteClockSeconds,
+        Date.now() / 1000, new Date().getTimezoneOffset())) return;
+  autoSyncDone = true;
+  if (await write(EpdCmd.SET_TIME, timePayload(deviceDisplayMode))) {
+    addLog(t("时间已同步！"));
+    addLog(t("屏幕刷新完成前请不要操作。"));
+  } else {
+    autoSyncDone = false;
+  }
+}
+
+async function syncTime(mode) {
+  if (mode === 2) {
+    if (!confirm(t('提醒：时钟模式目前使用全刷实现，此功能目前多用于修复老化屏残影问题，不建议长期开启，是否继续？'))) return;
+  }
+  if (await write(EpdCmd.SET_TIME, timePayload(mode))) {
     addLog(t("时间已同步！"));
     addLog(t("屏幕刷新完成前请不要操作。"));
   }
@@ -409,12 +439,14 @@ function handleNotify(value, idx) {
     epddriver.value = bytes2hex(data.slice(7, 8));
     updateDitcherOptions();
     deviceWeekStart = data[12];
+    deviceDisplayMode = data[11];
     document.getElementById("weekstart").value = String(deviceWeekStart);
     weekStatusKey = 'device_setting';
     document.getElementById("weekstartstatus").textContent =
       t(weekStatusKey, {day: t(deviceWeekStart === 0 ? '日曜日' : '月曜日')});
     awaitingConfig = false;
     updateButtonStatus();
+    void maybeSyncConnectedTime();
   } else {
     if (textDecoder == null) textDecoder = new TextDecoder();
     const msg = textDecoder.decode(data);
@@ -428,15 +460,18 @@ function handleNotify(value, idx) {
         addLog(t('已开启 RLE 压缩传输支持'));
       }
     } else if (msg.startsWith('t=') && msg.length > 2) {
-      const remoteSeconds = parseInt(msg.substring(2)) + new Date().getTimezoneOffset() * 60;
+      remoteClockSeconds = parseInt(msg.substring(2), 10);
+      const remoteSeconds = remoteClockSeconds + new Date().getTimezoneOffset() * 60;
       addLog(`${t('远端时间:')} ${new Date(remoteSeconds * 1000).toLocaleString(webLocale)}`);
       addLog(`${t('本地时间:')} ${new Date().toLocaleString(webLocale)}`);
+      void maybeSyncConnectedTime();
     }
   }
 }
 
 async function connect() {
   if (bleDevice == null || epdCharacteristic != null) return;
+  connectHandshakeComplete = false;
 
   try {
     addLog(t('正在连接:') + ' ' + bleDevice.name);
@@ -479,6 +514,8 @@ async function connect() {
 
   await write(EpdCmd.INIT);
   if (awaitingConfig) await write(EpdCmd.GET_CONFIG);
+  connectHandshakeComplete = true;
+  void maybeSyncConnectedTime();
 
   document.getElementById("connectbutton").innerHTML = t('断开');
   updateButtonStatus();
