@@ -94,7 +94,7 @@ def generate_all(font_path: Path):
         ('epd_jp_holiday_medium10.bdf', dict(size=10, weight='Medium',
                                            codes=holiday_codes(), threshold=105,
                                            cjk_advance=8, narrow=HOLIDAY_NARROW)),
-        ('epd_jp_rokuyo_regular12.bdf', dict(size=12, weight='Regular',
+        ('epd_jp_rokuyo_regular13.bdf', dict(size=13, weight='Regular',
                                            codes=rokuyo_codes(), threshold=95)),
     ]
     for name, options in specs:

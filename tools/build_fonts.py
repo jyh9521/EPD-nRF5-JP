@@ -27,7 +27,7 @@ FONTS = [
     },
     {
         'name': "u8g2_font_jp_rokuyo_readable",
-        'bdf': "fonts/epd_jp_rokuyo_regular12.bdf",
+        'bdf': "fonts/epd_jp_rokuyo_regular13.bdf",
         'ascii': None,
         'source': "rokuyo",
     }

@@ -43,10 +43,11 @@ for region, color, tolerance in [
     assert all(abs(u - v) <= tolerance for u, v in zip(a, b)), (region, a, b)
 
 # The selected holiday and two adjoining holidays must occupy the same cells.
-for image, color in ((reference, reference_red), (candidate, red)):
+for image, color, rails in ((reference, reference_red, (120, 176)),
+                            (candidate, red, (117, 173))):
     today = box(image, (60, 200, 115, 247), color)
     assert today[0] == 65 and today[1] == 204 and today[2] >= 110 and today[3] == 244
     assert all(any(image.getpixel((x, y)) == color for y in range(205, 244))
-               for x in (120, 176))
+               for x in rails)
 
 print("Reference render tests: PASS (400x300, header divisions, weekday rules, date rows, today and holiday cells)")

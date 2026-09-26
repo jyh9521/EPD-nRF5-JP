@@ -29,7 +29,7 @@ def bdf_heights(path):
 fonts = ROOT / 'tools' / 'fonts'
 ui = bdf_codes(fonts / 'epd_jp_ui_medium11.bdf')
 holiday = bdf_codes(fonts / 'epd_jp_holiday_medium10.bdf')
-rokuyo = bdf_codes(fonts / 'epd_jp_rokuyo_regular12.bdf')
+rokuyo = bdf_codes(fonts / 'epd_jp_rokuyo_regular13.bdf')
 assert ui == set(lunar_codes())
 assert holiday == set(holiday_codes())
 assert rokuyo == set(rokuyo_codes())
@@ -42,13 +42,13 @@ for path in (ROOT / 'GUI' / 'GUI.c', ROOT / 'GUI' / 'JapaneseCalendar.c',
         actual.update(ord(char) for char in string if ord(char) > 127)
 assert actual <= ui | holiday | rokuyo, ''.join(map(chr, sorted(actual - ui - holiday - rokuyo)))
 assert ord('_') in ui
-heights = bdf_heights(fonts / 'epd_jp_rokuyo_regular12.bdf')
+heights = bdf_heights(fonts / 'epd_jp_rokuyo_regular13.bdf')
 assert all(heights[ord(char)] >= 11 for char in '勝負仏滅')
 
 source = (ROOT / 'tools' / 'build_compact_font.py').read_text(encoding='utf-8')
 assert '.resize(' not in source
 assert "anchor='ls'" in source
-assert 'size=12' in source and 'size=11' in source and 'size=10' in source
+assert 'size=13' in source and 'size=11' in source and 'size=10' in source
 
 print(f'Japanese font subset tests: PASS (UI={len(ui)}, holiday={len(holiday)}, '
       f'rokuyo={len(rokuyo)}, covered_strings={len(actual)} codepoints)')

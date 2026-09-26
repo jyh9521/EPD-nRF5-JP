@@ -235,7 +235,7 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
         } else {
             GFX_setTextColor(gfx, red_day ? GFX_RED : GFX_BLACK, GFX_WHITE);
             if (!large && holiday.id != JP_HOLIDAY_NONE)
-                GFX_fillRect(gfx, cell_left + 4, row_top, 4, bh - 4, GFX_RED);
+                GFX_fillRect(gfx, cell_left + 1, row_top, 2, bh - 4, GFX_RED);
         }
 
         char buf[10] = {0};
@@ -244,13 +244,13 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
         int16_t date_width = GFX_getUTF8Width(gfx, buf);
         int16_t date_ascent = GFX_getFontAscent(gfx);
         int16_t date_x = cell_center_x - date_width / 2;
+        if (!large && day >= 10) date_x++;  // optical centering of two-digit bitmap runs
         int16_t date_y = large ? by - (cr - GFX_getFontHeight(gfx)) - 1 : row_top + 23;
         GFX_setCursor(gfx, date_x, date_y);
         GFX_printf(gfx, "%s", buf);
 
         GFX_setFont(gfx, large ? u8g2_font_wqy12_t_lunar : u8g2_font_jp_holiday_compact);
         int16_t label_y = large ? date_y + GFX_getFontHeight(gfx) + 5 : row_top + 38;
-        GFX_setFontMode(gfx, 1);  // transparent
         if (holiday.id != JP_HOLIDAY_NONE) {
             int16_t available = bw - 2;
             GFX_setFont(gfx, large ? u8g2_font_jp_ui_medium11 : u8g2_font_jp_holiday_compact);
@@ -261,6 +261,8 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
             }
             GFX_setTextColor(gfx, day == tm->tm_mday && !large ? GFX_WHITE : GFX_RED,
                              day == tm->tm_mday && !large ? GFX_RED : GFX_WHITE);
+            /* Selecting a font resets u8g2's transparency state. */
+            GFX_setFontMode(gfx, 1);
             if (holiday.id == JP_HOLIDAY_ENTHRONEMENT_CEREMONY) {
                 /* The 2019 legal name is 13 glyphs: keep it complete on two lines. */
                 const char* first = "即位礼正殿の儀";
@@ -309,7 +311,9 @@ static void DrawMonthDays(Adafruit_GFX* gfx, int16_t x, int16_t y, tm_t* tm, gui
             if (rokuyo != JP_ROKUYO_NONE) {
                 const char* name = jp_rokuyo_name(rokuyo);
                 if (!large) GFX_setFont(gfx, u8g2_font_jp_rokuyo_readable);
-                GFX_setTextColor(gfx, GFX_BLACK, GFX_WHITE);
+                GFX_setFontMode(gfx, 1);
+                GFX_setTextColor(gfx, day == tm->tm_mday && !large ? GFX_WHITE : GFX_BLACK,
+                                 day == tm->tm_mday && !large ? GFX_RED : GFX_WHITE);
                 GFX_setCursor(gfx, cell_center_x - GFX_getUTF8Width(gfx, name) / 2, label_y);
                 GFX_printf(gfx, "%s", name);
             }

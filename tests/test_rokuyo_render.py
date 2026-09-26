@@ -23,8 +23,8 @@ def main(september_path, august_path, holiday_today_path):
     # Holiday names and side rails are red; today is a red card with white date.
     assert count(holiday_today, (65, 204, 112, 245), red) > 1100
     assert count(holiday_today, (70, 210, 108, 240), white) > 30
-    assert count(holiday_today, (120, 205, 124, 244), red) > 100
-    assert count(holiday_today, (176, 205, 180, 244), red) > 100
+    assert count(holiday_today, (117, 205, 119, 244), red) > 60
+    assert count(holiday_today, (173, 205, 175, 244), red) > 60
     for box in ((120, 230, 170, 244), (176, 230, 226, 244)):
         assert count(holiday_today, box, red) > 30
     print("Rokuyo render tests: PASS (5-row, 6-row, black Rokuyo, holiday rails, today card)")
