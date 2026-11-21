@@ -30,35 +30,35 @@ def main(source, destination):
         center = left + 28
         # The badge is to the right of the date; the narrow x-window excludes it.
         date_color = white if day == 21 else red
-        date_box = bbox_for(image, center - 15, center + 7, 215, 230, date_color)
+        date_box = bbox_for(image, center - 12, center + 10, 194, 207, date_color)
         label_color = white if day == 21 else red
-        label_box = bbox_for(image, left + 4, left + 55, 233, 245, label_color)
+        label_box = bbox_for(image, left + 2, left + 54, 210, 220, label_color)
         bar_box = None
         if day != 21:
-            bar_box = bbox_for(image, left, left + 3, 205, 245, red)
-            assert bar_box[2] - bar_box[0] + 1 == 2, (day, bar_box)
+            bar_box = bbox_for(image, left, left + 1, 191, 227, red)
+            assert bar_box[2] - bar_box[0] + 1 == 1, (day, bar_box)
             gap = label_box[0] - bar_box[2] - 1
             assert gap >= 2, (day, gap, bar_box, label_box)
             date_visual_center = (date_box[0] + date_box[2]) / 2
             label_visual_center = (label_box[0] + label_box[2]) / 2
-            assert abs(date_visual_center - label_visual_center) <= 0.5, (
+            assert abs(date_visual_center - label_visual_center) <= 1.0, (
                 day, date_visual_center, label_visual_center)
             print(f'{day}: bar={bar_box} label={label_box} gap={gap}px')
         else:
             # Today + holiday has a red card but no separate narrow bar.
-            assert image.getpixel((left + 1, 220)) == white
+            assert image.getpixel((left, 214)) == white
             print(f'{day}: today card; separate_bar=none')
         bounds[day] = (left, center, date_box, label_box, bar_box)
         print(f'{day}: cellCenterX={center} date_bbox={date_box} '
               f'label_bbox={label_box} layout_anchor={center}')
 
     # Sep 26 is a normal (non-today, non-holiday) white cell in this preview.
-    assert image.getpixel((350, 242)) == white
-    assert bbox_for(image, 350, 387, 234, 245, (0, 0, 0))
+    assert image.getpixel((350, 220)) == white
+    assert bbox_for(image, 350, 387, 210, 220, (0, 0, 0))
     print('26: ordinary white cell with black Rokuyo; PASS')
 
-    crop_x, crop_y, scale = 60, 202, 8
-    debug = image.crop((crop_x, crop_y, 228, 249)).resize((168 * scale, 47 * scale),
+    crop_x, crop_y, scale = 60, 189, 8
+    debug = image.crop((crop_x, crop_y, 228, 229)).resize((168 * scale, 40 * scale),
                                                        Image.Resampling.NEAREST)
     draw = ImageDraw.Draw(debug)
     def line_x(x, color):

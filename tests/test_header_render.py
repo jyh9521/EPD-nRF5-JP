@@ -29,25 +29,22 @@ for image in (reference, candidate):
     assert image.getpixel((66, 12)) == white
     assert image.getpixel((310, 12)) == white
     assert image.getpixel((320, 22)) == white
-    assert image.getpixel((5, 74)) == black
-    assert image.getpixel((5, 295)) == black
+    assert image.getpixel((5, 74 if image is reference else 67)) == black
+    assert image.getpixel((5, 295 if image is reference else 277)) == black
 
 for region, color, tolerance in [
     ((0, 0, 59, 24), white, 3),       # Year
     ((0, 24, 59, 53), white, 2),      # Month
-    ((135, 78, 153, 100), black, 2), # First date
-    ((23, 123, 41, 144), red, 2),    # First Sunday in row 2
 ]:
     source_color = reference_red if color == red else color
     a, b = box(reference, region, source_color), box(candidate, region, color)
     assert all(abs(u - v) <= tolerance for u, v in zip(a, b)), (region, a, b)
 
-# The selected holiday and two adjoining holidays must occupy the same cells.
-for image, color, rails in ((reference, reference_red, (120, 176)),
-                            (candidate, red, (117, 173))):
-    today = box(image, (60, 200, 115, 247), color)
-    assert today[0] == 65 and today[1] == 204 and today[2] >= 110 and today[3] == 244
-    assert all(any(image.getpixel((x, y)) == color for y in range(205, 244))
-               for x in rails)
-
-print("Reference render tests: PASS (400x300, header divisions, weekday rules, date rows, today and holiday cells)")
+# Native-font grid starts at y=69; all five rows are 40px high.
+# The independent footer divider is at y=277.
+today = box(candidate, (60, 189, 116, 229), red)
+assert today == (61, 190, 114, 227), today
+assert candidate.getpixel((116, 210)) == red
+assert candidate.getpixel((172, 210)) == red
+assert box(candidate, (135, 74, 153, 91), black)[1::2] == (75, 87)
+print("Reference render tests: PASS (header retained; equal rows and separate footer)")

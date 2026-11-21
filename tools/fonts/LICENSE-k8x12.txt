@@ -1,0 +1,12 @@
+k8x12, 2021-05-05
+Copyright (C) 2015-2021 Num Kadoma
+https://littlelimit.net/k8x12.htm
+https://littlelimit.net/font.htm
+
+These fonts are free software.
+Unlimited permission is granted to use, copy, and distribute them, with or without modification, either commercially or noncommercially.
+THESE FONTS ARE PROVIDED "AS IS" WITHOUT WARRANTY.
+
+This repository redistributes a Unicode subset as epd_jp_holiday_k8x12.bdf
+and compiled u8g2_font_jp_holiday_compact. Original glyph bitmaps and advances
+are retained. Subsetting is performed by tools/build_compact_font.py.

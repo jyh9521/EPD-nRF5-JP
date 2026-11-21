@@ -20,7 +20,7 @@
 
 ## 打开项目自己的 Web 控制页面
 
-仓库内的 [`html/`](html/) 是项目自己的 Web Bluetooth 控制页面。可以用 Chrome 或 Edge 打开[在线控制页面](https://blog.blfy.cc/EPD-nRF5-JP/)；如需在本地使用，也可以在电脑上启动服务器（Windows CMD）：
+仓库内的 [`html/`](html/) 是项目自己的 Web Bluetooth 控制页面。可以用 Chrome 或 Edge 打开[在线控制页面](https://jyh9521.github.io/EPD-nRF5-JP/)；如需在本地使用，也可以在电脑上启动服务器（Windows CMD）：
 
 ```cmd
 cd /d C:\path\to\EPD-nRF5-JP

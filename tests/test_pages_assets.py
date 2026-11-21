@@ -35,4 +35,8 @@ assert "tsl0922.github.io" not in index + controller
 workflow = (ROOT / ".github" / "workflows" / "static.yml").read_text(encoding="utf-8")
 assert "path: 'html'" in workflow
 assert 'branches: ["main"]' in workflow
+for name in ("README.md", "README.zh-CN.md"):
+    readme = (ROOT / name).read_text(encoding="utf-8")
+    assert "https://jyh9521.github.io/EPD-nRF5-JP/" in readme, f"wrong controller URL: {name}"
+    assert "https://blog.blfy.cc/EPD-nRF5-JP/" not in readme, f"retired controller URL: {name}"
 print("GitHub Pages static assets/workflow test: PASS")

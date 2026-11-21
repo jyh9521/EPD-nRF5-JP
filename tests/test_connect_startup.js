@@ -8,7 +8,8 @@ const page = fs.readFileSync(path.join(__dirname, '..', 'html', 'index.html'), '
 const service = fs.readFileSync(path.join(__dirname, '..', 'EPD', 'EPD_service.c'), 'utf8');
 const header = fs.readFileSync(path.join(__dirname, '..', 'EPD', 'EPD_service.h'), 'utf8');
 assert.match(service, /#define EPD_CFG_52811 \{[^}]*0x02, 0x03, 0xFF/);
-assert.match(header, /#define APP_VERSION 0x1d\b/);
+const appVersion = Number(header.match(/#define APP_VERSION (0x[0-9a-f]+)\b/i)[1]);
+assert(appVersion >= 0x1d, 'firmware must support startup time sync');
 assert.match(page, /js\/main\.js\?v=1d/);
 if (process.argv[2]) {
   const binary = fs.readFileSync(process.argv[2]);
@@ -19,6 +20,7 @@ vm.runInContext(source, context);
 
 const check = expression => vm.runInContext(expression, context);
 assert.equal(check('shouldAutoSyncClock(0x1d, 1, 1000, 1100, 0)'), true);
+assert.equal(check(`shouldAutoSyncClock(${appVersion}, 1, 1000, 1100, 0)`), true);
 assert.equal(check('shouldAutoSyncClock(0x1d, 2, 1000, 1030, 0)'), false);
 assert.equal(check('shouldAutoSyncClock(0x1d, 0, 1000, 1100, 0)'), false);
 assert.equal(check('shouldAutoSyncClock(0x1c, 1, 1000, 1100, 0)'), false);
@@ -43,5 +45,5 @@ check(`
   assert.equal(context.calls[0][1].at(-1), 1);
   await check('maybeSyncConnectedTime()');
   assert.equal(context.calls.length, 1, 'one connection must not trigger duplicate refreshes');
-  console.log('Startup tests: PASS (firmware model 03, version 0x1d, drift, preserved mode, single SET_TIME)');
+  console.log(`Startup tests: PASS (firmware model 03, version 0x${appVersion.toString(16)}, drift, preserved mode, single SET_TIME)`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

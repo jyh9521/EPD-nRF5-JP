@@ -7,30 +7,9 @@ from build_compact_font import holiday_codes, lunar_codes, rokuyo_codes
 FONT_TXT = "font.txt"
 
 FONTS = [
-    {
-        'name': "u8g2_font_jp_ui_medium11",
-        'bdf': "fonts/epd_jp_ui_medium11.bdf",
-        'ascii': None,
-        'source': "jp_ui",
-    },
-    {
-        'name': f"u8g2_font_wqy12_t_lunar",
-        'bdf': f"fonts/wenquanyi_12ptb.bdf",
-        'ascii': "48-57",
-        'source': "font-large.txt",
-    },
-    {
-        'name': "u8g2_font_jp_holiday_compact",
-        'bdf': "fonts/epd_jp_holiday_medium10.bdf",
-        'ascii': None,
-        'source': None,
-    },
-    {
-        'name': "u8g2_font_jp_rokuyo_readable",
-        'bdf': "fonts/epd_jp_rokuyo_regular13.bdf",
-        'ascii': None,
-        'source': "rokuyo",
-    }
+    dict(name='u8g2_font_wqy9_t_jp', bdf='fonts/epd_jp_wqy12.bdf', ascii=None, source='jp_ui'),
+    dict(name='u8g2_font_jp_holiday_legacy', bdf='fonts/epd_jp_holiday_k8x12.bdf', ascii=None, source=None),
+    dict(name='u8g2_font_wqy12_t_lunar', bdf='fonts/wenquanyi_12ptb.bdf', ascii='48-57', source='font-large.txt'),
 ]
 
 EXTRA_FONTS = [

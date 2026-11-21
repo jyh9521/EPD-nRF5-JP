@@ -7,6 +7,7 @@ OBJS = $(SRCS:.c=.o)
 TARGET = emulator.exe
 TEST_TARGET = tests/test_japanese_calendar.exe
 TEST_ROKUYO_TARGET = tests/test_japanese_rokuyo.exe
+TEST_FONT_TARGET = tests/test_holiday_font.exe
 
 all: $(TARGET)
 
@@ -17,14 +18,18 @@ $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET) $(TEST_TARGET) $(TEST_ROKUYO_TARGET)
+	rm -f $(OBJS) $(TARGET) $(TEST_TARGET) $(TEST_ROKUYO_TARGET) $(TEST_FONT_TARGET)
 
-test: $(TEST_TARGET) $(TEST_ROKUYO_TARGET)
+test: $(TEST_TARGET) $(TEST_ROKUYO_TARGET) $(TEST_FONT_TARGET)
 	./$(TEST_TARGET)
 	./$(TEST_ROKUYO_TARGET)
+	./$(TEST_FONT_TARGET)
 
 $(TEST_TARGET): tests/test_japanese_calendar.c GUI/JapaneseCalendar.c GUI/JapaneseCalendar.h
 	$(CC) $(CFLAGS) tests/test_japanese_calendar.c GUI/JapaneseCalendar.c -o $@
 
 $(TEST_ROKUYO_TARGET): tests/test_japanese_rokuyo.c GUI/JapaneseRokuyo.c GUI/JapaneseRokuyo.h GUI/JapaneseCalendar.c GUI/Lunar.c
 	$(CC) $(CFLAGS) tests/test_japanese_rokuyo.c GUI/JapaneseRokuyo.c GUI/JapaneseCalendar.c GUI/Lunar.c -o $@
+
+$(TEST_FONT_TARGET): tests/test_holiday_font.c $(filter-out emulator.c,$(SRCS))
+	$(CC) $(CFLAGS) tests/test_holiday_font.c $(filter-out GUI/GUI.c emulator.c,$(SRCS)) -o $@

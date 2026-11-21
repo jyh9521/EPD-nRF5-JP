@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     do {
         GFX_fillScreen(&gfx, GFX_WHITE);
         GFX_fillRect(&gfx, 0, 0, WIDTH, 68, GFX_BLACK);
-        GFX_setFont(&gfx, u8g2_font_jp_ui_medium11);
+        GFX_setFont(&gfx, u8g2_font_wqy9_t_jp);
         GFX_setFontMode(&gfx, 1);
         GFX_setTextColor(&gfx, GFX_WHITE, GFX_BLACK);
         GFX_drawUTF8(&gfx, 12, 22, "令和8年");
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
         GFX_drawUTF8(&gfx, 12, 51, "長月");
         GFX_drawUTF8(&gfx, 150, 51, "第39週");
 
-        GFX_setFont(&gfx, u8g2_font_jp_rokuyo_readable);
+        GFX_setFont(&gfx, u8g2_font_wqy9_t_jp);
         GFX_setFontMode(&gfx, 1);
         GFX_setTextColor(&gfx, GFX_BLACK, GFX_WHITE);
         GFX_drawUTF8(&gfx, 20, 94, "大安");
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
         GFX_drawUTF8(&gfx, 20, 142, "先負");
         GFX_drawUTF8(&gfx, 150, 142, "仏滅");
 
-        GFX_setFont(&gfx, u8g2_font_jp_holiday_compact);
+        GFX_setFont(&gfx, u8g2_font_wqy9_t_jp);
         GFX_setFontMode(&gfx, 1);
         GFX_setTextColor(&gfx, GFX_RED, GFX_WHITE);
         GFX_drawUTF8(&gfx, 20, 180, "敬老の日");
@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
         GFX_drawUTF8(&gfx, 150, 204, "建国記念の日");
         GFX_drawUTF8(&gfx, 20, 228, "勤労感謝の日");
 
-        GFX_setFont(&gfx, u8g2_font_jp_ui_medium11);
+        GFX_setFont(&gfx, u8g2_font_wqy9_t_jp);
         GFX_setFontMode(&gfx, 1);
         GFX_setTextColor(&gfx, GFX_BLACK, GFX_WHITE);
         GFX_drawUTF8(&gfx, 20, 255, "曜 國 国 勤 謝 憲 龍 馬");

@@ -6,13 +6,22 @@ const path = require('node:path');
 const elements = new Map();
 const document = {
   body: {},
+  documentElement: {},
+  createTreeWalker() { return { nextNode() { return false; } }; },
+  querySelectorAll() { return []; },
   getElementById(id) {
     if (!elements.has(id)) elements.set(id, { value: '', disabled: false, textContent: '', innerHTML: '' });
     return elements.get(id);
   },
 };
 
-const context = vm.createContext({ document, console, Uint8Array, TextDecoder });
+const context = vm.createContext({ document, console, Uint8Array, TextDecoder,
+  navigator: { languages: ['ja'] },
+  localStorage: { getItem() { return null; }, setItem() {} },
+  NodeFilter: { SHOW_TEXT: 4 },
+});
+// Match index.html: main.js calls the real translation helper, not a stub.
+vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'html', 'js', 'i18n.js'), 'utf8'), context);
 const source = fs.readFileSync(path.join(__dirname, '..', 'html', 'js', 'main.js'), 'utf8');
 vm.runInContext(source, context, { filename: 'main.js' });
 vm.runInContext('addLog = () => {}; updateDitcherOptions = () => {}; gattServer = { connected: true };', context);

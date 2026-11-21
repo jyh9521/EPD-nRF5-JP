@@ -24,7 +24,7 @@
 
 ## Web コントローラー
 
-Web Bluetooth コントローラーは、このリポジトリの [`html/`](html/) に含まれています。Chrome または Edge で [公開ページ](https://blog.blfy.cc/EPD-nRF5-JP/) を開いて使用できます。ローカルで使う場合は、PC でサーバーを起動してください（Windows CMD）：
+Web Bluetooth コントローラーは、このリポジトリの [`html/`](html/) に含まれています。Chrome または Edge で [公開ページ](https://jyh9521.github.io/EPD-nRF5-JP/) を開いて使用できます。ローカルで使う場合は、PC でサーバーを起動してください（Windows CMD）：
 
 ```cmd
 cd /d C:\path\to\EPD-nRF5-JP

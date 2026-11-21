@@ -33,7 +33,7 @@ The original HEAD measurement used the original Keil-sized linker span
 
 - `EPD-nRF52811-JP.hex`: application-only Intel HEX at `0x19000`.
 - `EPD-nRF52811-JP.bin`: application-only raw bytes.
-- `EPD-nRF52811-JP-ota.zip`: signed application DFU archive, currently version `0x1d`,
+- `EPD-nRF52811-JP-ota.zip`: signed application DFU archive, currently version `0x20`,
   hardware version `52`, S112 requirement `0x126`.
 - `EPD-nRF52811-JP-manifest.json`: size and SHA-256 checksums.
 - `EPD-nRF52811-JP-full.hex`: merged development image containing the
@@ -66,6 +66,15 @@ On that device, sending `0103`, reading back the configuration with `22`, and
 then requesting calendar mode restored the Japanese display. This result is
 specific to that display model; a different model needs its own driver value.
 Persistence across a further device reset remains to be verified.
+
+Version `0x20` packages the visually approved single-line layout: original
+native 12px bitmap glyphs, GUI-only short holiday names in cells, and the
+selected holiday's unchanged full name in a separate footer. All weeks in
+a month have equal height. GUI and font bytes match the approved preview;
+only the firmware version and release documentation change at packaging.
+The earlier multi-line `0x1f` draft is superseded. Offline rendering approval
+is distinct from physical display and DFU acceptance, which remain pending.
+See `tools/fonts/README-JP.md` for font inputs and layout test coverage.
 
 Version `0x1d` changes the fresh nRF52811 default model from `02` to the
 confirmed UC8176 three-colour model `03`. An existing saved model value still
